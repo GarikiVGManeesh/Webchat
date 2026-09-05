@@ -150,7 +150,12 @@ export const storyAPI = {
     }),
   createTextStory: (data) => api.post('/stories', data),
   viewStory: (id) => api.put(`/stories/${id}/view`),
+  getStoryViewers: (id) => api.get(`/stories/${id}/viewers`),
   deleteStory: (id) => api.delete(`/stories/${id}`),
+  muteStories: (userId) => api.post(`/stories/mute/${userId}`),
+  unmuteStories: (userId) => api.delete(`/stories/mute/${userId}`),
+  getMutedStories: () => api.get('/stories/muted'),
+  reportStory: (id, data = {}) => api.post(`/stories/${id}/report`, data),
 };
 
 export default api;

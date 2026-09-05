@@ -16,6 +16,7 @@ import EmailVerification from './pages/EmailVerification';
 import ResetPrivacyPinPage from './pages/ResetPrivacyPinPage';
 import HomePage from './pages/HomePage';
 import ChatPage from './pages/ChatPage';
+import StoriesPage from './pages/StoriesPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
 
@@ -41,6 +42,11 @@ const App = () => {
                 <Route path="/chats" element={
                   <ProtectedRoute>
                     <ChatPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/stories" element={
+                  <ProtectedRoute>
+                    <StoriesPage />
                   </ProtectedRoute>
                 } />
                 <Route path="/profile" element={

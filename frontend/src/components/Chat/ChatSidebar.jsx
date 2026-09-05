@@ -10,7 +10,6 @@ import { getOtherParticipant, formatChatTime, getInitials, stringToColor, trunca
 import ThemeToggle from '../common/ThemeToggle';
 import { ChatListSkeleton, UserSearchSkeleton } from '../common/LoadingSkeleton';
 import toast from 'react-hot-toast';
-import StoryBar from './StoryBar';
 import CreateGroupModal from './CreateGroupModal';
 import {
   FiArchive,
@@ -25,6 +24,7 @@ import {
   FiCheck,
   FiLock,
   FiBellOff,
+  FiCamera,
 } from 'react-icons/fi';
 
 const ChatSidebar = ({ isMobileOpen, onCloseMobile }) => {
@@ -336,6 +336,14 @@ const ChatSidebar = ({ isMobileOpen, onCloseMobile }) => {
           </div>
           <div className="flex items-center gap-1">
             <button
+              onClick={() => navigate('/stories')}
+              className="p-2.5 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-700 hover:text-primary-500 dark:hover:text-primary-400 transition-all duration-300 hover:scale-110 active:scale-95"
+              title="Stories"
+              aria-label="Stories"
+            >
+              <FiCamera className="w-5 h-5" />
+            </button>
+            <button
               onClick={() => setShowCreateGroup(true)}
               className="p-2.5 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-700 hover:text-primary-500 dark:hover:text-primary-400 transition-all duration-300 hover:scale-110 active:scale-95"
               title="Create new group"
@@ -364,6 +372,9 @@ const ChatSidebar = ({ isMobileOpen, onCloseMobile }) => {
                     <p className="text-xs text-gray-500 dark:text-gray-400">{user?.email}</p>
                   </div>
                   <div className="py-1">
+                    <button onClick={() => { navigate('/stories'); setShowUserMenu(false); }} className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-primary-500/10 dark:hover:bg-white/5 flex items-center gap-3">
+                      <FiCamera className="w-4 h-4" /> Stories
+                    </button>
                     <button onClick={() => { navigate('/profile'); setShowUserMenu(false); }} className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-primary-500/10 dark:hover:bg-white/5 flex items-center gap-3">
                       <FiUser className="w-4 h-4" /> Profile
                     </button>
@@ -471,9 +482,6 @@ const ChatSidebar = ({ isMobileOpen, onCloseMobile }) => {
       </div>}
 
       {/* Chat List */}
-      {/* Story Bar */}
-      <StoryBar />
-
       {/* Create Group Modal */}
       {showCreateGroup && (
         <CreateGroupModal

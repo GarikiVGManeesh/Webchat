@@ -86,6 +86,13 @@ const UserSchema = new mongoose.Schema(
         ref: 'User',
       },
     ],
+    // Users whose stories the current user has muted (hidden from the feed)
+    mutedStoryUsers: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
     friends: [
       {
         type: mongoose.Schema.Types.ObjectId,

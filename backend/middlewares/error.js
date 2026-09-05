@@ -48,9 +48,10 @@ const errorHandler = (err, req, res, next) => {
     error = new ErrorResponse('Token has expired. Please login again.', 401);
   }
 
-  // Multer file size error
+  // Multer file size error (limit depends on the upload: 5MB avatar, 10MB
+  // message, 60MB story — so keep the message generic instead of lying)
   if (err.code === 'LIMIT_FILE_SIZE') {
-    error = new ErrorResponse('File too large. Maximum size is 10MB.', 400);
+    error = new ErrorResponse('File too large. Please upload a smaller file.', 400);
   }
 
   // Multer unexpected file error

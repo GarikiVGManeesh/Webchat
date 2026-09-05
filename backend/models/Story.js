@@ -48,4 +48,11 @@ const StorySchema = new mongoose.Schema(
 StorySchema.index({ user: 1, createdAt: -1 });
 StorySchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
+// Stories self-expire after 24h (TTL index above). isActive is a convenience
+// virtual mirroring the existing architecture: a story is active only while it
+// hasn't reached its expiration time.
+StorySchema.virtual('isActive').get(function () {
+  return this.expiresAt > new Date();
+});
+
 module.exports = mongoose.model('Story', StorySchema);

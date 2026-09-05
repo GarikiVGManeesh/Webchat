@@ -166,12 +166,21 @@ const initializeSocket = (httpServer) => {
         // Emit to chat room
         io.to(chatId).emit('newMessage', populatedMessage);
 
-        // Notification to receiver(s)
+        // Notification to receiver(s). We attach the chat's per-user privacy
+        // flags (lock/mute) so the client can keep notifications private
+        // without fetching the chat separately.
+        const chatPrivacy = {
+          _id: chat._id,
+          isGroup: chat.isGroup,
+          lockedBy: chat.lockedBy || [],
+          mutedBy: chat.mutedBy || [],
+        };
         if (chat.isGroup) {
           chat.participants.forEach((pId) => {
             if (pId.toString() !== userId) {
               io.to(pId.toString()).emit('messageNotification', {
                 chatId,
+                chat: chatPrivacy,
                 message: populatedMessage,
                 sender: { _id: socket.user._id, name: socket.user.name, avatar: socket.user.avatar },
               });
@@ -180,6 +189,7 @@ const initializeSocket = (httpServer) => {
         } else if (receiverId) {
           io.to(receiverId.toString()).emit('messageNotification', {
             chatId,
+            chat: chatPrivacy,
             message: populatedMessage,
             sender: { _id: socket.user._id, name: socket.user.name, avatar: socket.user.avatar },
           });

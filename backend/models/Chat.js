@@ -81,6 +81,23 @@ const ChatSchema = new mongoose.Schema(
       enum: ['off', '5min', '1hr', '24hr', '7days'],
       default: 'off',
     },
+    // === PRIVATE CHAT LOCK (per-conversation) ===
+    // Users in this list have locked THIS conversation only — other chats are
+    // unaffected. The lock is per-user: one participant locking a chat never
+    // locks it for the other participants.
+    lockedBy: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
+    // Users who muted notifications for this conversation.
+    mutedBy: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
   },
   {
     timestamps: true,

@@ -105,7 +105,7 @@ const MessageList = ({ onEditMessage, onReplyMessage, onDeleteMessage, onForward
             {isOtherOnline ? 'Online' : 'Offline'} · No messages yet. Say hello!
           </p>
           <div className="mt-6 text-xs text-gray-400 dark:text-gray-500 px-4 py-2 bg-gray-50 dark:bg-dark-700 rounded-lg">
-            Messages are end-to-end encrypted. No one outside this chat can read them.
+            Your conversations are private to you and your contacts — use Lock Chat to keep this one hidden.
           </div>
         </div>
       ) : (

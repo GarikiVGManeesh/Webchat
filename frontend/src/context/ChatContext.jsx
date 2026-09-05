@@ -3,6 +3,7 @@ import { chatAPI, messageAPI } from '../utils/api';
 import { useAuth } from './AuthContext';
 import { useSocket } from './SocketContext';
 import toast from 'react-hot-toast';
+import { getPrivateNotifications } from '../utils/privacyLock';
 
 const ChatContext = createContext(null);
 
@@ -36,6 +37,11 @@ export const ChatProvider = ({ children }) => {
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const messagesEndRef = useRef(null);
+
+  // Chats unlocked with the privacy PIN during THIS session only. Kept purely
+  // in memory: switching away from a chat (or closing the tab/browser) locks
+  // the conversation again automatically.
+  const [unlockedChats, setUnlockedChats] = useState(() => new Set());
 
   // Load chats
   const loadChats = useCallback(async () => {
@@ -71,11 +77,51 @@ export const ChatProvider = ({ children }) => {
     }
   }, []);
 
+  // Per-conversation lock helpers
+  const isChatLocked = useCallback(
+    (chat) =>
+      !!chat &&
+      (chat.lockedBy || []).some((id) => id.toString() === user?._id?.toString()),
+    [user?._id]
+  );
+
+  const isChatUnlocked = useCallback(
+    (chatId) => unlockedChats.has(chatId),
+    [unlockedChats]
+  );
+
+  const unlockChat = useCallback((chatId) => {
+    setUnlockedChats((prev) => {
+      const next = new Set(prev);
+      next.add(chatId);
+      return next;
+    });
+  }, []);
+
+  const relockChat = useCallback((chatId) => {
+    setUnlockedChats((prev) => {
+      const next = new Set(prev);
+      next.delete(chatId);
+      return next;
+    });
+  }, []);
+
   // Select a chat
   const selectChat = useCallback(async (chat) => {
-    setActiveChat(chat);
+    // Leaving the current conversation re-locks it (if it was locked).
+    setActiveChat((prev) => {
+      if (prev && prev._id !== chat._id) relockChat(prev._id);
+      return chat;
+    });
     setMessages([]);
-    
+
+    // LOCKED conversations: nothing sensitive leaves the server until the user
+    // authenticates — we don't fetch messages, join the socket room, or mark
+    // anything read yet. unlockAndEnter() does that after the PIN check.
+    if (isChatLocked(chat) && !unlockedChats.has(chat._id)) {
+      return;
+    }
+
     // Load messages
     await loadMessages(chat._id);
     
@@ -91,7 +137,19 @@ export const ChatProvider = ({ children }) => {
         c._id === chat._id ? { ...c, unreadCount: 0 } : c
       )
     );
-  }, [loadMessages, joinChat, emitMarkAsRead]);
+  }, [loadMessages, joinChat, emitMarkAsRead, relockChat, isChatLocked, unlockedChats]);
+
+  // After the privacy PIN check succeeds: unlock for this session and fetch
+  // the conversation's messages + join its realtime room.
+  const unlockAndEnter = useCallback(async (chatId) => {
+    unlockChat(chatId);
+    joinChat(chatId);
+    await loadMessages(chatId);
+    emitMarkAsRead(chatId);
+    setChats((prev) =>
+      prev.map((c) => (c._id === chatId ? { ...c, unreadCount: 0 } : c))
+    );
+  }, [unlockChat, joinChat, loadMessages, emitMarkAsRead]);
 
   // Create a new chat
   const createChat = useCallback(async (userId) => {
@@ -215,9 +273,31 @@ export const ChatProvider = ({ children }) => {
       );
     };
 
-    const handleMessageNotification = ({ message, sender }) => {
+    const handleMessageNotification = ({ message, sender, chat }) => {
       if (sender?._id === user?._id || activeChat?._id === message.chat) return;
-      toast(`${sender?.name || 'New message'}: ${message.content || 'Sent an attachment'}`, { icon: '💬' });
+
+      const chatRow = chat || chats.find((c) => c._id === message.chat);
+      const isMuted = (chatRow?.mutedBy || []).some((id) => id.toString() === user?._id?.toString());
+      const isLocked = (chatRow?.lockedBy || []).some((id) => id.toString() === user?._id?.toString());
+
+      if (isMuted) {
+        loadChats();
+        return;
+      }
+
+      // Locked conversations never leak message content or the sender's name
+      // in notifications — even inside the app.
+      if (isLocked && !unlockedChats.has(message.chat)) {
+        toast('🔒 New private message', { icon: '🔒' });
+        loadChats();
+        return;
+      }
+
+      if (getPrivateNotifications()) {
+        toast(`${sender?.name || 'New message'}: New message`, { icon: '💬' });
+      } else {
+        toast(`${sender?.name || 'New message'}: ${message.content || 'Sent an attachment'}`, { icon: '💬' });
+      }
       loadChats();
     };
 
@@ -261,7 +341,7 @@ export const ChatProvider = ({ children }) => {
       socket.off('messageNotification', handleMessageNotification);
       socket.off('reactionUpdated', handleReactionUpdated);
     };
-  }, [socket, activeChat, user?._id, loadChats]);
+  }, [socket, activeChat, user?._id, loadChats, chats, unlockedChats]);
 
   // Handle typing events
   useEffect(() => {
@@ -323,6 +403,11 @@ export const ChatProvider = ({ children }) => {
     isSearching,
     messagesEndRef,
     onlineUsers,
+    isChatLocked,
+    isChatUnlocked,
+    unlockChat,
+    relockChat,
+    unlockAndEnter,
     loadChats,
     loadMessages,
     selectChat,

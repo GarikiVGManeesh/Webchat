@@ -6,6 +6,8 @@ const {
   login,
   sendOTP,
   verifyOTP,
+  sendPrivacyPinOTP,
+  verifyPrivacyPinOTP,
   verifyEmail,
   resendVerification,
   forgotPassword,
@@ -42,6 +44,8 @@ router.post('/forgot-password', forgotPassword);
 router.put('/reset-password/:token', resetPassword);
 
 // Private routes
+router.post('/send-pin-reset-otp', protect, sendPrivacyPinOTP);
+router.post('/verify-pin-reset-otp', protect, verifyPrivacyPinOTP);
 router.get('/me', protect, getMe);
 router.put('/update-password', protect, updatePassword);
 router.get('/logout', protect, logout);

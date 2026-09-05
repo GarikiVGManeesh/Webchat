@@ -19,13 +19,213 @@ import {
   FiTrash2,
   FiBell,
   FiVolume2,
+  FiKey,
+  FiBellOff,
+  FiX,
 } from 'react-icons/fi';
 import { getNotificationPrefs, setNotificationPrefs, requestNotificationPermission } from '../utils/notifications';
+import { useChat } from '../context/ChatContext';
+import { chatAPI } from '../utils/api';
+import {
+  hasPin,
+  setPin,
+  changePin,
+  getPrivateNotifications,
+  setPrivateNotifications,
+  isBiometricAvailable,
+  isBiometricEnrolled,
+  enrollBiometric,
+  removeBiometric,
+} from '../utils/privacyLock';
+
+// ==================== MANAGE LOCKED CHATS MODAL ====================
+const ManageLockedChatsModal = ({ chats, onUnlock, onClose }) => {
+  const getName = (chat) =>
+    chat.isGroup ? chat.groupName || 'Group' : chat.participants?.[0]?.name || 'Chat';
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-modal-overlay" onClick={onClose} />
+      <div className="relative glass rounded-[2rem] p-6 w-full max-w-md animate-modal-in shadow-2xl max-h-[80vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white">Locked Chats</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+            <FiX className="w-5 h-5" />
+          </button>
+        </div>
+        {chats.length === 0 ? (
+          <p className="text-sm text-gray-500 dark:text-gray-400 py-8 text-center">
+            No locked conversations. Lock a chat from its ⋮ menu.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {chats.map((chat) => (
+              <div key={chat._id} className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-primary-500/5 dark:bg-white/5 border border-primary-500/10">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-600 to-primary-700 text-white flex items-center justify-center flex-shrink-0">
+                    <FiLock className="w-4 h-4" />
+                  </div>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{getName(chat)}</p>
+                </div>
+                <button
+                  onClick={() => onUnlock(chat._id)}
+                  className="text-xs font-semibold text-secondary-700 dark:text-secondary-300 px-3 py-1.5 rounded-full border border-secondary-400/40 hover:bg-secondary-500/10 transition-colors flex-shrink-0"
+                >
+                  Unlock
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ==================== PRIVACY PIN MODAL ====================
+const PinModal = ({ onClose }) => {
+  const changing = hasPin();
+  const [current, setCurrent] = useState('');
+  const [pin, setPinValue] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [biometric, setBiometric] = useState(isBiometricEnrolled());
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricBusy, setBiometricBusy] = useState(false);
+
+  useEffect(() => {
+    isBiometricAvailable().then(setBiometricAvailable);
+  }, []);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!/^\d{4,8}$/.test(pin)) {
+      setError('PIN must be 4–8 digits.');
+      return;
+    }
+    if (pin !== confirm) {
+      setError('PINs do not match.');
+      return;
+    }
+    setSaving(true);
+    setError('');
+    try {
+      if (changing) {
+        await changePin(current, pin);
+      } else {
+        await setPin(pin);
+      }
+      toast.success(changing ? 'Privacy PIN changed' : 'Privacy PIN set');
+      onClose();
+    } catch (err) {
+      setError(err.message || 'Failed to save PIN.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleBiometricToggle = async () => {
+    setBiometricBusy(true);
+    if (biometric) {
+      removeBiometric();
+      setBiometric(false);
+      toast.success('Biometric unlock disabled');
+    } else {
+      if (!hasPin()) {
+        toast.error('Set a privacy PIN first');
+      } else {
+        const ok = await enrollBiometric();
+        if (ok) {
+          setBiometric(true);
+          toast.success('Biometric unlock enabled');
+        } else {
+          toast.error('Biometric enrollment failed');
+        }
+      }
+    }
+    setBiometricBusy(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-modal-overlay" onClick={onClose} />
+      <div className="relative glass rounded-[2rem] p-6 w-full max-w-sm animate-modal-in shadow-2xl max-h-[85vh] overflow-y-auto">
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
+          {changing ? 'Change Privacy PIN' : 'Set Privacy PIN'}
+        </h3>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-5">
+          Used to unlock locked conversations on this device.
+        </p>
+
+        <form onSubmit={handleSubmit} className="space-y-3">
+          {changing && (
+            <input
+              type="password"
+              inputMode="numeric"
+              maxLength={8}
+              placeholder="Current PIN"
+              value={current}
+              onChange={(e) => { setCurrent(e.target.value.replace(/\D/g, '')); setError(''); }}
+              className="input-field text-sm tracking-[0.3em]"
+            />
+          )}
+          <input
+            type="password"
+            inputMode="numeric"
+            maxLength={8}
+            placeholder="New PIN (4–8 digits)"
+            value={pin}
+            onChange={(e) => { setPinValue(e.target.value.replace(/\D/g, '')); setError(''); }}
+            className="input-field text-sm tracking-[0.3em]"
+          />
+          <input
+            type="password"
+            inputMode="numeric"
+            maxLength={8}
+            placeholder="Confirm new PIN"
+            value={confirm}
+            onChange={(e) => { setConfirm(e.target.value.replace(/\D/g, '')); setError(''); }}
+            className="input-field text-sm tracking-[0.3em]"
+          />
+          {error && <p className="text-xs text-red-500">{error}</p>}
+          <button type="submit" disabled={saving} className="btn-primary w-full text-sm">
+            {saving ? 'Saving...' : changing ? 'Change PIN' : 'Set PIN'}
+          </button>
+        </form>
+
+        {biometricAvailable && (
+          <>
+            <hr className="my-4 border-gray-100 dark:border-dark-700" />
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">Unlock with biometric</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Fingerprint / face on this device</p>
+              </div>
+              <button
+                onClick={handleBiometricToggle}
+                disabled={biometricBusy}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${biometric ? 'bg-primary-500' : 'bg-gray-300 dark:bg-dark-600'} ${biometricBusy ? 'opacity-50' : ''}`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${biometric ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+            </div>
+          </>
+        )}
+
+        <button onClick={onClose} className="w-full text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors mt-4">
+          Close
+        </button>
+      </div>
+    </div>
+  );
+};
 
 const SettingsPage = () => {
   const navigate = useNavigate();
   const { user, logout, logoutAll } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { chats, isChatLocked, loadChats } = useChat();
 
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [passwordData, setPasswordData] = useState({
@@ -39,6 +239,28 @@ const SettingsPage = () => {
     confirm: false,
   });
   const [changingPassword, setChangingPassword] = useState(false);
+
+  // === PRIVACY & SECURITY (per-conversation chat lock) ===
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [showManageLocks, setShowManageLocks] = useState(false);
+  const [privateNotif, setPrivateNotif] = useState(getPrivateNotifications());
+
+  const lockedChats = (chats || []).filter((chat) => isChatLocked(chat));
+
+  const handleTogglePrivateNotifications = (enabled) => {
+    setPrivateNotifications(enabled);
+    setPrivateNotif(enabled);
+  };
+
+  const handleUnlockLockedChat = async (chatId) => {
+    try {
+      await chatAPI.lockChat(chatId); // toggles the per-user lock off
+      toast.success('Chat unlocked');
+      await loadChats();
+    } catch (error) {
+      toast.error('Failed to unlock chat');
+    }
+  };
 
   // === NOTIFICATION PREFERENCES ===
   const [notifPrefs, setNotifPrefs] = useState(getNotificationPrefs());
@@ -242,6 +464,84 @@ const SettingsPage = () => {
           </div>
         </div>
 
+        {/* Privacy & Security */}
+        <div className="card p-5">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Privacy &amp; Security</h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+            Protect the conversations that matter most. Lock individual chats and keep your private
+            conversations hidden from prying eyes.
+          </p>
+
+          {/* Locked Chats */}
+          <div className="flex items-center justify-between py-3 gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="p-2 bg-primary-100 dark:bg-primary-900/30 rounded-xl flex-shrink-0">
+                <FiLock className="w-5 h-5 text-primary-500" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-gray-900 dark:text-white">Locked Chats</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {lockedChats.length === 0
+                    ? 'No conversations are protected'
+                    : `${lockedChats.length} conversation${lockedChats.length === 1 ? ' is' : 's are'} protected`}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowManageLocks(true)}
+              className="text-xs font-semibold text-secondary-700 dark:text-secondary-300 px-3 py-1.5 rounded-full border border-secondary-400/40 hover:bg-secondary-500/10 transition-colors flex-shrink-0"
+            >
+              Manage Locked Chats
+            </button>
+          </div>
+
+          <hr className="border-gray-100 dark:border-dark-700" />
+
+          {/* Privacy PIN */}
+          <div className="flex items-center justify-between py-3 gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-xl flex-shrink-0">
+                <FiKey className="w-5 h-5 text-amber-500" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-gray-900 dark:text-white">Privacy PIN</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {hasPin() ? 'PIN is set — used to unlock locked chats' : 'Set a PIN to lock conversations'}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowPinModal(true)}
+              className="text-xs font-semibold text-secondary-700 dark:text-secondary-300 px-3 py-1.5 rounded-full border border-secondary-400/40 hover:bg-secondary-500/10 transition-colors flex-shrink-0"
+            >
+              {hasPin() ? 'Change PIN' : 'Set PIN'}
+            </button>
+          </div>
+
+          <hr className="border-gray-100 dark:border-dark-700" />
+
+          {/* Private Notifications */}
+          <div className="flex items-center justify-between py-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-xl">
+                <FiBellOff className="w-5 h-5 text-green-500" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">Private Notifications</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Hide message content from notifications</p>
+              </div>
+            </div>
+            <button
+              onClick={() => handleTogglePrivateNotifications(!privateNotif)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${privateNotif ? 'bg-primary-500' : 'bg-gray-300 dark:bg-dark-600'}`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${privateNotif ? 'translate-x-6' : 'translate-x-1'}`}
+              />
+            </button>
+          </div>
+        </div>
+
         {/* Security */}
         <div className="card p-5">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Security</h2>
@@ -367,6 +667,16 @@ const SettingsPage = () => {
           </p>
         </div>
       </div>
+
+      {/* Privacy & Security modals */}
+      {showPinModal && <PinModal onClose={() => setShowPinModal(false)} />}
+      {showManageLocks && (
+        <ManageLockedChatsModal
+          chats={lockedChats}
+          onUnlock={handleUnlockLockedChat}
+          onClose={() => setShowManageLocks(false)}
+        />
+      )}
     </div>
   );
 };

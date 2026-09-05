@@ -9,6 +9,9 @@ const {
   pinChat,
   archiveChat,
   deleteChat,
+  toggleChatLock,
+  toggleChatMute,
+  clearChat,
   createGroupChat,
   addGroupMember,
   removeGroupMember,
@@ -25,6 +28,9 @@ router.post('/', createChat);
 router.get('/:id', getChatById);
 router.put('/pin/:id', pinChat);
 router.put('/archive/:id', archiveChat);
+router.put('/lock/:id', toggleChatLock);
+router.put('/mute/:id', toggleChatMute);
+router.delete('/:id/clear', clearChat);
 router.delete('/:id', deleteChat);
 
 // Group chat routes

@@ -3,7 +3,10 @@ const mongoose = require('mongoose');
 const OTPSchema = new mongoose.Schema({
   mobile: {
     type: String,
-    required: [true, 'Please provide a mobile number'],
+    trim: true,
+  },
+  email: {
+    type: String,
     trim: true,
   },
   otp: {
@@ -12,7 +15,7 @@ const OTPSchema = new mongoose.Schema({
   },
   purpose: {
     type: String,
-    enum: ['login', 'verify_mobile', 'reset_password'],
+    enum: ['login', 'verify_mobile', 'reset_password', 'privacy_pin_reset'],
     default: 'login',
   },
   attempts: {

@@ -413,6 +413,142 @@ exports.archiveChat = async (req, res, next) => {
 };
 
 /**
+ * @desc    Lock/unlock a chat for the current user (per-conversation)
+ * @route   PUT /api/chats/lock/:id
+ * @access  Private
+ */
+exports.toggleChatLock = async (req, res, next) => {
+  try {
+    const chat = await Chat.findById(req.params.id);
+    if (!chat) {
+      return res.status(404).json({ success: false, message: 'Chat not found.' });
+    }
+
+    if (!chat.participants.some((p) => p.toString() === req.user._id.toString())) {
+      return res.status(403).json({ success: false, message: 'Not authorized.' });
+    }
+
+    const userId = req.user._id.toString();
+    const isLocked = (chat.lockedBy || []).some((id) => id.toString() === userId);
+
+    if (isLocked) {
+      await Chat.updateOne(
+        { _id: chat._id },
+        { $pull: { lockedBy: req.user._id } },
+        { timestamps: false }
+      );
+    } else {
+      await Chat.updateOne(
+        { _id: chat._id },
+        { $addToSet: { lockedBy: req.user._id } },
+        { timestamps: false }
+      );
+    }
+
+    // Refresh the acting user's chat list. Lock state is private to the user
+    // who set it, so we deliberately emit only to that user — never to the
+    // other participants.
+    const populated = await Chat.findById(chat._id)
+      .populate('participants', 'name email avatar status lastSeen bio')
+      .populate('lastMessage');
+    const io = req.app.get('io');
+    if (io) {
+      io.to(userId).emit('chatUpdated', populated);
+    }
+
+    res.status(200).json({ success: true, isLocked: !isLocked });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Mute/unmute notifications for a chat (per-conversation, per-user)
+ * @route   PUT /api/chats/mute/:id
+ * @access  Private
+ */
+exports.toggleChatMute = async (req, res, next) => {
+  try {
+    const chat = await Chat.findById(req.params.id);
+    if (!chat) {
+      return res.status(404).json({ success: false, message: 'Chat not found.' });
+    }
+
+    if (!chat.participants.some((p) => p.toString() === req.user._id.toString())) {
+      return res.status(403).json({ success: false, message: 'Not authorized.' });
+    }
+
+    const userId = req.user._id.toString();
+    const isMuted = (chat.mutedBy || []).some((id) => id.toString() === userId);
+
+    if (isMuted) {
+      await Chat.updateOne(
+        { _id: chat._id },
+        { $pull: { mutedBy: req.user._id } },
+        { timestamps: false }
+      );
+    } else {
+      await Chat.updateOne(
+        { _id: chat._id },
+        { $addToSet: { mutedBy: req.user._id } },
+        { timestamps: false }
+      );
+    }
+
+    const populated = await Chat.findById(chat._id)
+      .populate('participants', 'name email avatar status lastSeen bio')
+      .populate('lastMessage');
+    const io = req.app.get('io');
+    if (io) {
+      io.to(userId).emit('chatUpdated', populated);
+    }
+
+    res.status(200).json({ success: true, isMuted: !isMuted });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Clear all messages in a chat
+ * @route   DELETE /api/chats/:id/clear
+ * @access  Private
+ */
+exports.clearChat = async (req, res, next) => {
+  try {
+    const chat = await Chat.findById(req.params.id);
+    if (!chat) {
+      return res.status(404).json({ success: false, message: 'Chat not found.' });
+    }
+
+    if (!chat.participants.some((p) => p.toString() === req.user._id.toString())) {
+      return res.status(403).json({ success: false, message: 'Not authorized.' });
+    }
+
+    // Removes the whole message history for this conversation.
+    await Message.deleteMany({ chat: chat._id });
+
+    chat.lastMessage = undefined;
+    await chat.save();
+
+    const populated = await Chat.findById(chat._id)
+      .populate('participants', 'name email avatar status lastSeen bio')
+      .populate('lastMessage');
+
+    const io = req.app.get('io');
+    if (io) {
+      chat.participants.forEach((pId) => {
+        io.to(pId.toString()).emit('chatUpdated', populated);
+      });
+    }
+
+    res.status(200).json({ success: true, message: 'Chat cleared.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * @desc    Delete a chat
  * @route   DELETE /api/chats/:id
  * @access  Private

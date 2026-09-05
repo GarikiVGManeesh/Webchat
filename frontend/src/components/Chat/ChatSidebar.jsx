@@ -23,12 +23,14 @@ import {
   FiX,
   FiStar,
   FiCheck,
+  FiLock,
+  FiBellOff,
 } from 'react-icons/fi';
 
 const ChatSidebar = ({ isMobileOpen, onCloseMobile }) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const { chats, activeChat, selectChat, createChat, loadingChats, onlineUsers, loadChats } = useChat();
+  const { chats, activeChat, selectChat, createChat, loadingChats, onlineUsers, loadChats, isChatUnlocked } = useChat();
   const { sidebarOpen, setSidebarOpen } = useTheme();
   const { socket } = useSocket();
 
@@ -204,6 +206,14 @@ const ChatSidebar = ({ isMobileOpen, onCloseMobile }) => {
     const isPinned = chat.pinnedBy?.includes(user?._id);
     const isActive = activeChat?._id === chat._id;
     const lastMsg = chat.lastMessage;
+    // Per-conversation privacy lock: only THIS chat is affected.
+    const isLocked = (chat.lockedBy || []).some(
+      (id) => id.toString() === user?._id?.toString()
+    );
+    const isMuted = (chat.mutedBy || []).some(
+      (id) => id.toString() === user?._id?.toString()
+    );
+    const isPrivatePreview = isLocked && !isChatUnlocked(chat._id);
     // lastMessage.sender arrives as a plain id string from the REST
     // API but as a populated user object from socket events.
     const isMyLastMessage = !!lastMsg && (lastMsg.sender === user?._id || lastMsg.sender?._id === user?._id);
@@ -245,6 +255,8 @@ const ChatSidebar = ({ isMobileOpen, onCloseMobile }) => {
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white truncate flex items-center gap-1">
               {isPinned && <FiStar className="w-3 h-3 text-gray-400" />}
               {otherUser?.name || 'Unknown'}
+              {isLocked && <FiLock className="w-3 h-3 text-secondary-500 flex-shrink-0" />}
+              {isMuted && <FiBellOff className="w-3 h-3 text-gray-400 flex-shrink-0" />}
             </h3>
             <div className="flex items-center gap-1 flex-shrink-0">
               {chat.unreadCount > 0 && (
@@ -258,7 +270,11 @@ const ChatSidebar = ({ isMobileOpen, onCloseMobile }) => {
             </div>
           </div>
           <div className="flex items-center gap-1 mt-0.5">
-            {lastMsgHidden ? (
+            {isPrivatePreview ? (
+              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                🔒 Private Conversation
+              </p>
+            ) : lastMsgHidden ? (
               <p className="text-xs text-gray-400 dark:text-gray-500 italic truncate">
                 You deleted this message
               </p>

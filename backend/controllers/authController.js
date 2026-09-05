@@ -238,6 +238,125 @@ exports.sendOTP = async (req, res, next) => {
 };
 
 /**
+ * @desc    Send a verification code to the user's email/phone for Privacy PIN recovery
+ * @route   POST /api/auth/send-pin-reset-otp
+ * @access  Private
+ */
+exports.sendPrivacyPinOTP = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    // Rate limit: at most one code per minute per user, and drop stale codes.
+    const recent = await OTP.findOne({
+      email: user.email,
+      purpose: 'privacy_pin_reset',
+      createdAt: { $gt: new Date(Date.now() - 60000) },
+    });
+    if (recent) {
+      return res.status(429).json({
+        success: false,
+        message: 'Please wait a moment before requesting another code.',
+      });
+    }
+
+    await OTP.deleteMany({ email: user.email, purpose: 'privacy_pin_reset' });
+
+    const otpCode = OTP.generateOTP();
+    const expiresAt = new Date(
+      Date.now() + parseInt(process.env.OTP_EXPIRE_MINUTES || 10) * 60 * 1000
+    );
+
+    await OTP.create({
+      email: user.email,
+      otp: otpCode,
+      purpose: 'privacy_pin_reset',
+      expiresAt,
+    });
+
+    // Deliver via email (always available) and SMS when a mobile is on file.
+    const otpMessage = `Your ${appName} verification code is: ${otpCode}. It expires in ${process.env.OTP_EXPIRE_MINUTES || 10} minutes. Do not share this code.`;
+    try {
+      await sendEmail({
+        email: user.email,
+        subject: `Verify your account - ${appName}`,
+        message: otpMessage,
+      });
+    } catch (emailError) {
+      console.error('PIN reset OTP email failed:', emailError.message);
+      console.log(`[PIN Reset OTP] ${user.email}: ${otpCode}`);
+    }
+
+    if (user.mobile) {
+      try {
+        await sendSMS({ to: user.mobile, message: otpMessage });
+      } catch (smsError) {
+        console.error('PIN reset OTP SMS failed:', smsError.message);
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Verification code sent.',
+      // In development, return OTP for testing
+      ...(process.env.NODE_ENV === 'development' && { otp: otpCode }),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Verify the Privacy PIN recovery code
+ * @route   POST /api/auth/verify-pin-reset-otp
+ * @access  Private
+ */
+exports.verifyPrivacyPinOTP = async (req, res, next) => {
+  try {
+    const { otp } = req.body;
+    if (!otp) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide the verification code.',
+      });
+    }
+
+    const otpRecord = await OTP.findOne({
+      email: req.user.email,
+      otp: String(otp).trim(),
+      purpose: 'privacy_pin_reset',
+      isVerified: false,
+    });
+
+    if (!otpRecord || otpRecord.isExpired()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired verification code.',
+      });
+    }
+
+    // Limit verification attempts to prevent brute-forcing the code.
+    otpRecord.attempts = (otpRecord.attempts || 0) + 1;
+    if (otpRecord.attempts >= 5) {
+      await OTP.deleteOne({ _id: otpRecord._id });
+      return res.status(400).json({
+        success: false,
+        message: 'Too many attempts. Please request a new code.',
+      });
+    }
+
+    otpRecord.isVerified = true;
+    await otpRecord.save();
+
+    res.status(200).json({ success: true, message: 'Account verified.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * @desc    Verify OTP and login
  * @route   POST /api/auth/verify-otp
  * @access  Public

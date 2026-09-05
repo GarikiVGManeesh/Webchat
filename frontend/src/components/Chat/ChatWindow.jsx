@@ -1,5 +1,5 @@
 import { APP_NAME, APP_LOGO } from '../../config';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useChat } from '../../context/ChatContext';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -26,8 +26,23 @@ import {
   FiUser,
   FiUsers,
   FiClock,
+  FiLock,
+  FiUnlock,
+  FiBellOff,
+  FiTrash,
+  FiMail,
+  FiCheckCircle,
 } from 'react-icons/fi';
-import { chatAPI } from '../../utils/api';
+import { chatAPI, authAPI } from '../../utils/api';
+import {
+  hasPin,
+  setPin,
+  verifyPin,
+  recordPinAttempt,
+  getPinLockoutRemaining,
+  isBiometricAvailable,
+  authenticateBiometric,
+} from '../../utils/privacyLock';
 
 // Helper to format vanish mode label
 const getVanishLabel = (mode) => {
@@ -40,6 +55,469 @@ const getVanishLabel = (mode) => {
   }
 };
 
+// ==================== FORGOT PRIVACY PIN (account-verified recovery) ====================
+const ForgotPinModal = ({ onClose }) => {
+  const { user } = useAuth();
+  const [step, setStep] = useState('send'); // send | verify | create | success
+  const [code, setCode] = useState('');
+  const [pin, setPinValue] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [resendIn, setResendIn] = useState(0);
+
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const t = setInterval(() => setResendIn((s) => s - 1), 1000);
+    return () => clearInterval(t);
+  }, [resendIn]);
+
+  const handleSend = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      const res = await authAPI.sendPinResetOTP();
+      if (res?.data?.otp) setCode(res.data.otp); // dev helper: pre-fill the code
+      setStep('verify');
+      setResendIn(30);
+    } catch (err) {
+      setError(err.message || 'Unable to send the verification code. Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleVerify = async (e) => {
+    e.preventDefault();
+    if (!code) {
+      setError('Enter the verification code.');
+      return;
+    }
+    setBusy(true);
+    setError('');
+    try {
+      await authAPI.verifyPinResetOTP({ otp: code });
+      setStep('create');
+    } catch (err) {
+      setError(err.message || 'Invalid verification code.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    if (!/^\d{4,8}$/.test(pin)) {
+      setError('PIN must be 4–8 digits.');
+      return;
+    }
+    if (pin !== confirm) {
+      setError('PINs do not match.');
+      return;
+    }
+    setBusy(true);
+    setError('');
+    try {
+      await setPin(pin); // hashed + salted on this device
+      recordPinAttempt(true); // clear any temporary lockout
+      setStep('success');
+    } catch (err) {
+      setError(err.message || 'Unable to reset your Privacy PIN.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const closeBtn = (
+    <button
+      type="button"
+      onClick={onClose}
+      className="w-full text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors mt-3"
+    >
+      Cancel
+    </button>
+  );
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-modal-overlay" onClick={onClose} />
+      <div className="relative glass rounded-[2rem] p-7 w-full max-w-sm animate-modal-in shadow-2xl max-h-[90vh] overflow-y-auto">
+        {step === 'send' && (
+          <div className="text-center">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-primary-600 to-primary-700 text-white flex items-center justify-center mb-5 shadow-lg shadow-primary-500/25 ring-1 ring-secondary-300/40">
+              <FiMail className="w-6 h-6" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Forgot your Privacy PIN?</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+              Verify your account to reset your Privacy PIN and regain access to your locked conversations.
+            </p>
+            {error && <p className="text-xs text-red-500 mb-4">{error}</p>}
+            <button onClick={handleSend} disabled={busy} className="btn-primary w-full text-sm inline-flex items-center justify-center gap-2">
+              {busy ? 'Sending...' : 'Send Verification Code'}
+            </button>
+            {closeBtn}
+          </div>
+        )}
+
+        {step === 'verify' && (
+          <form onSubmit={handleVerify} className="text-center">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-primary-600 to-primary-700 text-white flex items-center justify-center mb-5 shadow-lg shadow-primary-500/25 ring-1 ring-secondary-300/40">
+              <FiLock className="w-6 h-6" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Enter Verification Code</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+              We sent a code to your registered email{user?.mobile ? ' and phone' : ''}.
+            </p>
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength={6}
+              placeholder="_ _ _ _ _ _"
+              value={code}
+              onChange={(e) => { setCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setError(''); }}
+              autoFocus
+              className="input-field text-center text-lg tracking-[0.5em] py-3 mb-2"
+            />
+            {error && <p className="text-xs text-red-500 mb-4">{error}</p>}
+            <button type="submit" disabled={busy} className="btn-primary w-full text-sm">
+              {busy ? 'Verifying...' : 'Verify'}
+            </button>
+            <button
+              type="button"
+              onClick={handleSend}
+              disabled={busy || resendIn > 0}
+              className="w-full text-xs font-medium text-secondary-600 dark:text-secondary-300 hover:underline transition-colors mt-4 disabled:opacity-50"
+            >
+              {resendIn > 0 ? `Didn't receive the code? Resend Code (${resendIn}s)` : "Didn't receive the code? Resend Code"}
+            </button>
+            {closeBtn}
+          </form>
+        )}
+
+        {step === 'create' && (
+          <form onSubmit={handleCreate} className="text-center">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-primary-600 to-primary-700 text-white flex items-center justify-center mb-5 shadow-lg shadow-primary-500/25 ring-1 ring-secondary-300/40">
+              <FiLock className="w-6 h-6" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Create New Privacy PIN</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+              Your new PIN replaces the old one. The old PIN can never be recovered.
+            </p>
+            <input
+              type="password"
+              inputMode="numeric"
+              maxLength={8}
+              placeholder="Enter New PIN (4–8 digits)"
+              value={pin}
+              onChange={(e) => { setPinValue(e.target.value.replace(/\D/g, '')); setError(''); }}
+              autoFocus
+              className="input-field text-center text-lg tracking-[0.4em] py-3 mb-3"
+            />
+            <input
+              type="password"
+              inputMode="numeric"
+              maxLength={8}
+              placeholder="Confirm New Privacy PIN"
+              value={confirm}
+              onChange={(e) => { setConfirm(e.target.value.replace(/\D/g, '')); setError(''); }}
+              className="input-field text-center text-lg tracking-[0.4em] py-3 mb-2"
+            />
+            {error && <p className="text-xs text-red-500 mb-4">{error}</p>}
+            <button type="submit" disabled={busy} className="btn-primary w-full text-sm">
+              {busy ? 'Resetting...' : 'Reset Privacy PIN'}
+            </button>
+            {closeBtn}
+          </form>
+        )}
+
+        {step === 'success' && (
+          <div className="text-center">
+            <div className="w-14 h-14 mx-auto rounded-full bg-green-500/15 text-green-500 flex items-center justify-center mb-5">
+              <FiCheckCircle className="w-7 h-7" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Privacy PIN reset successfully.</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+              You can now unlock your locked conversations with your new PIN.
+            </p>
+            <button onClick={onClose} className="btn-primary w-full text-sm">Continue to Private Chats</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ==================== PRIVACY LOCK SCREEN ====================
+const PrivacyLockScreen = ({ biometricAvailable, onUnlocked, onCancel }) => {
+  const [pin, setPinValue] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [usingBiometric, setUsingBiometric] = useState(false);
+  const [lockoutRemaining, setLockoutRemaining] = useState(getPinLockoutRemaining());
+  const [showForgot, setShowForgot] = useState(false);
+
+  // Count down an active lockout so the user can see when to try again.
+  useEffect(() => {
+    if (lockoutRemaining <= 0) return;
+    const t = setInterval(() => setLockoutRemaining(getPinLockoutRemaining()), 1000);
+    return () => clearInterval(t);
+  }, [lockoutRemaining]);
+
+  const handleUnlock = async (e) => {
+    e?.preventDefault();
+    const lockout = getPinLockoutRemaining();
+    if (lockout > 0) {
+      setLockoutRemaining(lockout);
+      setError(`Too many attempts. Try again in ${lockout}s.`);
+      return;
+    }
+    if (!pin) {
+      setError('Enter your privacy PIN to continue.');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    const ok = await verifyPin(pin);
+    setLoading(false);
+    if (ok) {
+      recordPinAttempt(true);
+      onUnlocked();
+    } else {
+      recordPinAttempt(false);
+      const nextLockout = getPinLockoutRemaining();
+      if (nextLockout > 0) {
+        setLockoutRemaining(nextLockout);
+        setError(`Too many attempts. Try again in ${nextLockout}s.`);
+      } else {
+        setError('Incorrect Privacy PIN.');
+      }
+      setPinValue('');
+    }
+  };
+
+  const handleBiometric = async () => {
+    const lockout = getPinLockoutRemaining();
+    if (lockout > 0) {
+      setLockoutRemaining(lockout);
+      setError(`Too many attempts. Try again in ${lockout}s.`);
+      return;
+    }
+    setUsingBiometric(true);
+    setError('');
+    const ok = await authenticateBiometric();
+    setUsingBiometric(false);
+    if (ok) {
+      recordPinAttempt(true);
+      onUnlocked();
+    } else {
+      setError('Biometric authentication failed. Use your PIN instead.');
+    }
+  };
+
+  return (
+    <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-primary-900/5 to-primary-700/5 dark:from-dark-900/60 dark:to-dark-800/40 px-4 animate-fade-in">
+      <div className="glass rounded-[2rem] p-8 sm:p-10 w-full max-w-sm text-center shadow-2xl shadow-primary-900/20 animate-fade-in-scale">
+        {/* Lock icon with pulsing ring */}
+        <div className="relative inline-flex mb-6">
+          <div className="absolute inset-0 rounded-full bg-secondary-400/30 animate-ping" style={{ animationDuration: '2.5s' }} />
+          <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-primary-600 to-primary-700 dark:from-primary-500 dark:to-primary-800 text-white flex items-center justify-center shadow-lg shadow-primary-500/30 ring-1 ring-secondary-300/40">
+            <FiLock className="w-7 h-7" />
+          </div>
+        </div>
+
+        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Private Conversation</h3>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-7">
+          This conversation is protected.
+        </p>
+
+        <form onSubmit={handleUnlock} className="space-y-4">
+          <input
+            type="password"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={8}
+            placeholder="Enter Privacy PIN"
+            value={pin}
+            onChange={(e) => { setPinValue(e.target.value.replace(/\D/g, '')); setError(''); }}
+            autoFocus
+            className="input-field text-center text-lg tracking-[0.5em] py-3"
+          />
+
+          {error && <p className="text-xs text-red-500">{error}</p>}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-primary w-full inline-flex items-center justify-center gap-2 text-sm"
+          >
+            {loading ? 'Unlocking...' : 'Unlock'}
+            {!loading && <FiUnlock className="w-4 h-4" />}
+          </button>
+
+          {biometricAvailable && (
+            <button
+              type="button"
+              onClick={handleBiometric}
+              disabled={usingBiometric}
+              className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold text-primary-600 dark:text-primary-300 rounded-full border border-primary-400/40 hover:bg-primary-500/10 transition-all duration-300 disabled:opacity-50"
+            >
+              {usingBiometric ? 'Authenticating...' : 'Unlock with biometric'}
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setShowForgot(true)}
+            className="mt-1 w-full text-xs font-medium text-secondary-600 dark:text-secondary-300 hover:text-secondary-700 dark:hover:text-secondary-200 underline-offset-2 hover:underline transition-colors"
+          >
+            Forgot Privacy PIN?
+          </button>
+
+          <button
+            type="button"
+            onClick={onCancel}
+            className="w-full text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+          >
+            Cancel
+          </button>
+        </form>
+      </div>
+
+      {showForgot && (
+        <ForgotPinModal
+          onClose={() => {
+            setShowForgot(false);
+            setLockoutRemaining(getPinLockoutRemaining());
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+// ==================== LOCK CHAT MODAL (create PIN / confirm PIN) ====================
+// - First time locking: creates the Privacy PIN and locks the conversation.
+// - Later locks: verifies the existing PIN before locking.
+const LockChatModal = ({ chatName, needsPin, onLocked, onCancel }) => {
+  const [pin, setPinValue] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!/^\d{4,8}$/.test(pin)) {
+      setError('PIN must be 4–8 digits.');
+      return;
+    }
+    if (needsPin && pin !== confirm) {
+      setError('PINs do not match.');
+      return;
+    }
+    setBusy(true);
+    setError('');
+    try {
+      if (needsPin) {
+        // Persist the hashed PIN on this device first.
+        await setPin(pin);
+      } else {
+        const ok = await verifyPin(pin);
+        if (!ok) {
+          setError('Incorrect Privacy PIN.');
+          setBusy(false);
+          return;
+        }
+      }
+      onLocked();
+    } catch (err) {
+      setError(err.message || 'Unable to save your Privacy PIN. Please try again.');
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-modal-overlay" onClick={onCancel} />
+      <div className="relative glass rounded-[2rem] p-7 w-full max-w-sm animate-modal-in shadow-2xl">
+        <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-primary-600 to-primary-700 text-white flex items-center justify-center mb-5 shadow-lg shadow-primary-500/25 ring-1 ring-secondary-300/40">
+          <FiLock className="w-6 h-6" />
+        </div>
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 text-center">Lock This Conversation</h3>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 text-center">
+          {needsPin
+            ? 'Create a Privacy PIN to protect this conversation.'
+            : `Enter your Privacy PIN to lock your conversation with ${chatName}.`}
+        </p>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input
+            type="password"
+            inputMode="numeric"
+            maxLength={8}
+            placeholder={needsPin ? 'New PIN (4–8 digits)' : 'Enter Privacy PIN'}
+            value={pin}
+            onChange={(e) => { setPinValue(e.target.value.replace(/\D/g, '')); setError(''); }}
+            autoFocus
+            className="input-field text-center text-lg tracking-[0.4em] py-3"
+          />
+          {needsPin && (
+            <input
+              type="password"
+              inputMode="numeric"
+              maxLength={8}
+              placeholder="Confirm PIN"
+              value={confirm}
+              onChange={(e) => { setConfirm(e.target.value.replace(/\D/g, '')); setError(''); }}
+              className="input-field text-center text-lg tracking-[0.4em] py-3"
+            />
+          )}
+          {error && <p className="text-xs text-red-500 text-center">{error}</p>}
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="flex-1 py-2.5 text-sm font-semibold text-gray-600 dark:text-gray-300 glass rounded-full hover:scale-[1.02] transition-all duration-200"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={busy}
+              className="flex-1 py-2.5 text-sm font-bold text-white rounded-full transition-all duration-200 hover:scale-[1.02] active:scale-95 disabled:opacity-50"
+              style={{ background: 'linear-gradient(135deg, #6d28d9, #8b5cf6)' }}
+            >
+              {busy ? 'Working...' : 'Lock Chat'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// ==================== CLEAR CHAT CONFIRM MODAL ====================
+const ClearChatModal = ({ chatName, onConfirm, onCancel }) => (
+  <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-modal-overlay" onClick={onCancel} />
+    <div className="relative glass rounded-[2rem] p-7 w-full max-w-sm text-center animate-modal-in shadow-2xl">
+      <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-primary-600 to-primary-700 text-white flex items-center justify-center mb-5 shadow-lg shadow-primary-500/25">
+        <FiTrash className="w-6 h-6" />
+      </div>
+      <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Clear this conversation?</h3>
+      <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+        All messages with {chatName} will be permanently deleted from this conversation.
+      </p>
+      <div className="flex gap-3">
+        <button onClick={onCancel} className="flex-1 py-2.5 text-sm font-semibold text-gray-600 dark:text-gray-300 glass rounded-full hover:scale-[1.02] transition-all duration-200">
+          Cancel
+        </button>
+        <button onClick={onConfirm} className="flex-1 py-2.5 text-sm font-bold text-white rounded-full bg-red-500 hover:bg-red-600 transition-all duration-200 hover:scale-[1.02] active:scale-95">
+          Clear Chat
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
 const ChatWindow = () => {
   const {
     user
@@ -50,6 +528,11 @@ const ChatWindow = () => {
     selectChat,
     setActiveChat,
     loadChats,
+    setMessages,
+    isChatLocked,
+    isChatUnlocked,
+    unlockChat,
+    relockChat,
   } = useChat();
   const { sidebarOpen, setSidebarOpen } = useTheme();
   const {
@@ -68,11 +551,43 @@ const ChatWindow = () => {
   const [showVanishToggle, setShowVanishToggle] = useState(false);
   const [showGroupInfo, setShowGroupInfo] = useState(false);
   const [highlightedMessageId, setHighlightedMessageId] = useState(null);
+  const [showLockModal, setShowLockModal] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+
+  // Detect whether the device supports biometric (platform authenticator) unlock.
+  useEffect(() => {
+    isBiometricAvailable().then(setBiometricAvailable);
+  }, []);
+
+  // Close the ⋮ menu only when clicking OUTSIDE it. We deliberately do NOT
+  // close on mousedown inside the menu — that would unmount the menu items
+  // before their click event fires and make every option appear dead.
+  const optionsRef = useRef(null);
+  useEffect(() => {
+    if (!showOptions) return;
+    const handleClickOutside = (e) => {
+      if (optionsRef.current && optionsRef.current.contains(e.target)) return;
+      setShowOptions(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showOptions]);
 
   const otherUser = activeChat ? getOtherParticipant(activeChat, user?._id) : null;
   const isOnline = onlineUsers.includes(otherUser?._id);
   // Archive state is per user: a chat archived by someone else stays visible.
   const isArchivedChat = activeChat ? (activeChat.archivedBy || []).includes(user?._id) : false;
+  // Per-conversation privacy lock state
+  const isLockedChat = isChatLocked(activeChat);
+  const isChatUnlockedNow = isChatUnlocked(activeChat?._id);
+  const isPrivate = isLockedChat && !isChatUnlockedNow;
+  const isMutedChat = (activeChat?.mutedBy || []).some(
+    (id) => id.toString() === user?._id?.toString()
+  );
+  const chatName = activeChat?.isGroup
+    ? activeChat.groupName || 'Group'
+    : otherUser?.name || 'Chat';
 
   // === REACTION NOTIFICATION ===
   useEffect(() => {
@@ -137,8 +652,81 @@ const ChatWindow = () => {
   };
 
   const handleBack = () => {
+    // Leaving a locked conversation re-locks it immediately.
+    if (activeChat) relockChat(activeChat._id);
     setActiveChat(null);
     setSidebarOpen(true);
+  };
+
+  const toggleMuteChat = async () => {
+    try {
+      await chatAPI.muteChat(activeChat._id);
+      setActiveChat((prev) => {
+        const wasMuted = (prev.mutedBy || []).some(
+          (id) => id.toString() === user?._id?.toString()
+        );
+        const mutedBy = wasMuted
+          ? (prev.mutedBy || []).filter((id) => id.toString() !== user?._id?.toString())
+          : [...(prev.mutedBy || []), user?._id];
+        return { ...prev, mutedBy };
+      });
+      toast.success(isMutedChat ? 'Notifications unmuted' : 'Notifications muted');
+      loadChats();
+    } catch (error) {
+      toast.error('Failed to update notifications');
+    }
+    setShowOptions(false);
+  };
+
+  const handleLockChat = () => {
+    setShowLockModal(true);
+    setShowOptions(false);
+  };
+
+  const confirmLockChat = async () => {
+    try {
+      await chatAPI.lockChat(activeChat._id);
+      setActiveChat((prev) => ({
+        ...prev,
+        lockedBy: [...(prev.lockedBy || []), user?._id],
+      }));
+      toast.success('Chat locked 🔒');
+      loadChats();
+    } catch (error) {
+      toast.error('Unable to lock this conversation. Please try again.');
+    }
+    setShowLockModal(false);
+    setShowOptions(false);
+  };
+
+  const confirmUnlockChat = async () => {
+    try {
+      await chatAPI.lockChat(activeChat._id); // toggles the per-user lock off
+      setActiveChat((prev) => ({
+        ...prev,
+        lockedBy: (prev.lockedBy || []).filter(
+          (id) => id.toString() !== user?._id?.toString()
+        ),
+      }));
+      toast.success('Chat unlocked');
+      loadChats();
+    } catch (error) {
+      toast.error('Failed to unlock chat');
+    }
+    setShowOptions(false);
+  };
+
+  const confirmClearChat = async () => {
+    try {
+      await chatAPI.clearChat(activeChat._id);
+      setMessages([]);
+      toast.success('Chat cleared');
+      loadChats();
+    } catch (error) {
+      toast.error('Failed to clear chat');
+    }
+    setShowClearConfirm(false);
+    setShowOptions(false);
   };
 
   const handlePinChat = async () => {
@@ -308,7 +896,7 @@ const ChatWindow = () => {
   return (
     <div className="flex-1 flex flex-col bg-white/50 dark:bg-dark-900/50 backdrop-blur-xl min-h-0 h-full overflow-hidden">
       {/* Chat Header */}
-      <div className="flex-shrink-0 px-4 py-3 border-b border-primary-500/10 bg-white/60 dark:bg-dark-900/60 backdrop-blur-xl">
+      <div className="relative z-20 flex-shrink-0 px-4 py-3 border-b border-primary-500/10 bg-white/60 dark:bg-dark-900/60 backdrop-blur-xl">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0">
             {/* Mobile back button */}
@@ -344,9 +932,12 @@ const ChatWindow = () => {
 
             {/* User Info */}
             <div className="min-w-0">
-              <h2 className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                {otherUser?.name || 'Unknown'}
-              </h2>
+              <div className="flex items-center gap-1.5">
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                  {otherUser?.name || 'Unknown'}
+                </h2>
+                {isLockedChat && <FiLock className="w-3.5 h-3.5 text-secondary-500 flex-shrink-0" title="Locked conversation" />}
+              </div>
               <div className="flex items-center gap-2">
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   {isOnline ? (
@@ -395,7 +986,8 @@ const ChatWindow = () => {
             </button>
 
             {/* More options */}
-            <div className="relative">
+            {!isPrivate ? (
+            <div className="relative" ref={optionsRef}>
               <button
                 onClick={() => setShowOptions(!showOptions)}
                 className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-primary-500/10 dark:hover:bg-white/5 rounded-lg transition-all"
@@ -414,9 +1006,21 @@ const ChatWindow = () => {
                     <button onClick={() => { setShowOptions(false); window.open(`/users/${otherUser?._id}`, '_blank'); }} className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-primary-500/10 dark:hover:bg-white/5 flex items-center gap-3">
                       <FiUser className="w-4 h-4" /> View Profile
                     </button>
+                    <button onClick={toggleMuteChat} className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-primary-500/10 dark:hover:bg-white/5 flex items-center gap-3">
+                      <FiBellOff className="w-4 h-4" /> {isMutedChat ? 'Unmute Notifications' : 'Mute Notifications'}
+                    </button>
                     <button onClick={handlePinChat} className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-primary-500/10 dark:hover:bg-white/5 flex items-center gap-3">
                       <FiStar className="w-4 h-4" /> Pin Chat
                     </button>
+                    {isLockedChat ? (
+                      <button onClick={confirmUnlockChat} className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-primary-500/10 dark:hover:bg-white/5 flex items-center gap-3">
+                        <FiUnlock className="w-4 h-4 text-secondary-500" /> Unlock Chat
+                      </button>
+                    ) : (
+                      <button onClick={handleLockChat} className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-primary-500/10 dark:hover:bg-white/5 flex items-center gap-3">
+                        <FiLock className="w-4 h-4 text-secondary-500" /> Lock Chat
+                      </button>
+                    )}
 
                     {/* Disappearing Messages option */}
                     <button
@@ -435,6 +1039,9 @@ const ChatWindow = () => {
                     <button onClick={handleArchiveChat} className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-primary-500/10 dark:hover:bg-white/5 flex items-center gap-3">
                       <FiArchive className="w-4 h-4" /> {isArchivedChat ? 'Unarchive Chat' : 'Archive Chat'}
                     </button>
+                    <button onClick={() => { setShowOptions(false); setShowClearConfirm(true); }} className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-primary-500/10 dark:hover:bg-white/5 flex items-center gap-3">
+                      <FiTrash className="w-4 h-4" /> Clear Chat
+                    </button>
                     <hr className="border-gray-100 dark:border-dark-600" />
                     <button onClick={handleDeleteChat} className="w-full px-4 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3">
                       <FiTrash2 className="w-4 h-4" /> Delete Chat
@@ -452,6 +1059,14 @@ const ChatWindow = () => {
                 />
               )}
             </div>
+            ) : (
+              <div
+                className="p-2 rounded-lg bg-primary-500/10 text-secondary-500 flex items-center justify-center"
+                title="Private conversation"
+              >
+                <FiLock className="w-4 h-4" />
+              </div>
+            )}
           </div>
         </div>
 
@@ -489,20 +1104,49 @@ const ChatWindow = () => {
         )}
       </div>
 
-      {/* Messages */}
-      <MessageList
-        onEditMessage={handleEditMessage}
-        onReplyMessage={handleReplyMessage}
-        onDeleteMessage={handleDeleteMessage}
-        onForwardMessage={(msg) => setForwardingMessage(msg)}
-        highlightedMessageId={highlightedMessageId}
-      />
+      {isPrivate ? (
+        <PrivacyLockScreen
+          biometricAvailable={biometricAvailable}
+          onUnlocked={() => unlockChat(activeChat._id)}
+          onCancel={handleBack}
+        />
+      ) : (
+        <>
+          {/* Messages */}
+          <MessageList
+            onEditMessage={handleEditMessage}
+            onReplyMessage={handleReplyMessage}
+            onDeleteMessage={handleDeleteMessage}
+            onForwardMessage={(msg) => setForwardingMessage(msg)}
+            highlightedMessageId={highlightedMessageId}
+          />
 
-      {/* Input */}
-      <MessageInput
-        replyTo={replyTo}
-        onClearReply={() => setReplyTo(null)}
-      />
+          {/* Input */}
+          <MessageInput
+            replyTo={replyTo}
+            onClearReply={() => setReplyTo(null)}
+          />
+        </>
+      )}
+
+      {/* Lock Chat modal — creates the Privacy PIN on first lock, confirms it afterwards */}
+      {showLockModal && (
+        <LockChatModal
+          chatName={chatName}
+          needsPin={!hasPin()}
+          onLocked={confirmLockChat}
+          onCancel={() => setShowLockModal(false)}
+        />
+      )}
+
+      {/* Clear Chat confirm */}
+      {showClearConfirm && (
+        <ClearChatModal
+          chatName={chatName}
+          onConfirm={confirmClearChat}
+          onCancel={() => setShowClearConfirm(false)}
+        />
+      )}
 
       {/* Forward Modal */}
       {forwardingMessage && <ForwardModal message={forwardingMessage} onClose={() => setForwardingMessage(null)} />}

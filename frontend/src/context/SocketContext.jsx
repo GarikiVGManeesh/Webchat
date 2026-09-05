@@ -8,6 +8,8 @@ import {
   getNotificationPrefs,
   requestNotificationPermission,
 } from '../utils/notifications';
+import { APP_NAME } from '../config';
+import { getPrivateNotifications } from '../utils/privacyLock';
 
 const SocketContext = createContext(null);
 
@@ -97,19 +99,53 @@ export const SocketProvider = ({ children }) => {
 
       const prefs = getNotificationPrefs();
 
-      // Determine notification content
+      const isMuted = (chat?.mutedBy || []).some(
+        (id) => id.toString() === user?._id?.toString()
+      );
+      const isLocked = (chat?.lockedBy || []).some(
+        (id) => id.toString() === user?._id?.toString()
+      );
+
+      // Muted conversations never notify.
+      if (isMuted) return;
+
+      // Locked conversations: NEVER leak sender name or message content.
+      if (isLocked) {
+        if (prefs.notificationSounds) playNotificationSound();
+        if (prefs.desktopNotifications) {
+          showDesktopNotification({
+            title: APP_NAME,
+            body: '🔒 New private message',
+            icon: '/mahaa-logo.svg',
+            tag: message._id,
+            onClick: () => {
+              window.focus();
+              window.dispatchEvent(
+                new CustomEvent('echo:openChat', {
+                  detail: { chatId: chat?._id || message.chat },
+                })
+              );
+            },
+          });
+        }
+        return;
+      }
+
       const senderName = sender?.name || 'New Message';
-      const messageBody = message.messageType === 'text'
-        ? message.content
-        : message.messageType === 'image'
-          ? '📷 Photo'
-          : message.messageType === 'video'
-            ? '🎥 Video'
-          : message.messageType === 'audio'
-            ? '🎵 Voice message'
-          : message.messageType === 'location'
-            ? '📍 Location'
-            : '📎 File';
+      const messageBody =
+        getPrivateNotifications()
+          ? 'New message'
+          : message.messageType === 'text'
+            ? message.content
+            : message.messageType === 'image'
+              ? '📷 Photo'
+              : message.messageType === 'video'
+                ? '🎥 Video'
+                : message.messageType === 'audio'
+                  ? '🎵 Voice message'
+                  : message.messageType === 'location'
+                    ? '📍 Location'
+                    : '📎 File';
 
       // Play notification sound
       if (prefs.notificationSounds) {

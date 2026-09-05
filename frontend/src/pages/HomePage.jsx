@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { APP_NAME, APP_NAME_MAIN, APP_NAME_ACCENT, APP_LOGO } from '../config';
 import { useNavigate } from 'react-router-dom';
 import {
   FiMessageSquare,
@@ -12,7 +13,11 @@ import {
   FiUsers,
   FiSmile,
   FiClock,
-  FiShare2
+  FiShare2,
+  FiLock,
+  FiEyeOff,
+  FiUserCheck,
+  FiCheck,
 } from 'react-icons/fi';
 
 // ==================== INTERSECTION OBSERVER HOOK ====================
@@ -79,10 +84,10 @@ const Navbar = () => {
           {/* Logo */}
           <div className="flex items-center gap-2.5 group cursor-pointer">
             <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-2xl overflow-hidden shadow-lg shadow-primary-500/30 group-hover:shadow-primary-500/50 transition-shadow duration-300">
-              <img src="/mahaa-logo.svg" alt="Mahaa Verse" className="w-full h-full" />
+              <img src={APP_LOGO} alt={APP_NAME} className="w-full h-full" />
             </div>
             <span className="text-xl sm:text-2xl font-extrabold text-gray-900 dark:text-white">
-              Mahaa <span className="gradient-text">Verse</span>
+              {APP_NAME_MAIN} <span className="gradient-text">{APP_NAME_ACCENT}</span>
             </span>
           </div>
 
@@ -278,7 +283,7 @@ const ChatMockup = () => (
       <div className="p-4 space-y-3 bg-white/30 dark:bg-white/[0.02] min-h-[280px] chat-wallpaper">
         <div className="flex justify-start">
           <div className="message-bubble-received">
-            <p className="text-sm">Hey! Have you tried Mahaa Verse yet? 🚀</p>
+            <p className="text-sm">Hey! Have you tried {APP_NAME} yet? 🚀</p>
             <p className="text-[10px] text-gray-400 mt-1">10:42 AM</p>
           </div>
         </div>
@@ -595,6 +600,222 @@ const CTASection = () => {
   );
 };
 
+// ==================== PRIVACY & SECURITY SECTION ====================
+const privacyFeatures = [
+  {
+    icon: 'lock',
+    title: 'Private Chats',
+    text: 'Your conversations are private by design — we never use them for advertising, tracking, or profiling.',
+  },
+  {
+    icon: 'shield',
+    title: 'Data Protection',
+    text: 'We never sell, rent, or share your personal information with third parties.',
+  },
+  {
+    icon: 'shieldCheck',
+    title: 'Secure Messaging',
+    text: 'Messages are protected with strong encryption in transit — and end-to-end encryption is rolling out so only you and your recipients can read them.',
+  },
+  {
+    icon: 'userCheck',
+    title: 'Your Data, Your Control',
+    text: 'Delete messages and chats anytime, vanish mode removes them automatically, and more account controls are on the way.',
+  },
+  {
+    icon: 'eyeOff',
+    title: 'Privacy First',
+    text: 'We collect only what’s needed to run the service — no ads, no trackers, no hidden data collection.',
+  },
+];
+
+const privacyIndicators = [
+  '🔒 Private by Design',
+  '🛡️ Secure Communication',
+  '🚫 No Data Selling',
+  '👤 User Control',
+];
+
+const privacyDetails = [
+  {
+    title: 'What we store',
+    points: [
+      'Only what’s needed to run the service — accounts, chats, and stories.',
+      'No advertising profiles. No trackers. No data resale.',
+    ],
+  },
+  {
+    title: 'How it’s protected',
+    points: [
+      'Encrypted connections in transit (TLS) on every connection.',
+      'End-to-end message encryption is being rolled out across chats.',
+    ],
+  },
+  {
+    title: 'What you control',
+    points: [
+      'Delete chats and messages at any time.',
+      'Vanish mode removes messages automatically.',
+      'More self-serve account controls are on the way.',
+    ],
+  },
+];
+
+const PrivacyIcon = ({ type }) => {
+  const baseClass = 'w-5 h-5';
+  switch (type) {
+    case 'shieldCheck':
+      return (
+        <span className="relative inline-flex">
+          <FiShield className={baseClass} />
+          <FiCheck className="absolute -bottom-1.5 -right-1.5 w-3 h-3 text-secondary-300" />
+        </span>
+      );
+    case 'lock':
+      return <FiLock className={baseClass} />;
+    case 'shield':
+      return <FiShield className={baseClass} />;
+    case 'userCheck':
+      return <FiUserCheck className={baseClass} />;
+    default:
+      return <FiEyeOff className={baseClass} />;
+  }
+};
+
+const PrivacySection = () => {
+  const [sectionRef, inView] = useInView({ threshold: 0.1 });
+  const [detailsRef, detailsInView] = useInView({ threshold: 0.15 });
+
+  const scrollToPrivacyDetails = () => {
+    document.getElementById('privacy-details')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  return (
+    <section id="privacy" ref={sectionRef} className="relative py-20 sm:py-28 overflow-hidden">
+      {/* Ambient glows — violet with a soft gold whisper */}
+      <div className="absolute -top-16 left-1/4 w-[480px] h-[480px] bg-primary-400/10 dark:bg-primary-500/10 rounded-full blur-3xl" />
+      <div className="absolute top-1/3 -right-28 w-80 h-80 bg-secondary-300/10 dark:bg-secondary-500/10 rounded-full blur-3xl" />
+
+      {/* Gold hairline separator */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-secondary-400/40 to-transparent" />
+
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Section header */}
+        <div className={`text-center mb-14 sm:mb-16 transition-all duration-700 ${inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 glass rounded-full text-sm font-semibold text-secondary-600 dark:text-secondary-300 mb-5 border border-secondary-400/20">
+            <FiShield className="w-3.5 h-3.5" />
+            Trust &amp; Security
+          </div>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 dark:text-white leading-tight mb-5">
+            Your Privacy.
+            <br />
+            Your Conversations.
+            <br />
+            <span className="gradient-text">Your Control.</span>
+          </h2>
+          <p className="text-base sm:text-lg text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">
+            {APP_NAME} is built with privacy and security at its core.
+          </p>
+        </div>
+
+        {/* Feature cards */}
+        <div className="flex flex-wrap justify-center gap-6">
+          {privacyFeatures.map((feature, index) => (
+            <div
+              key={feature.title}
+              className={`group relative w-full sm:basis-[calc(50%_-_0.75rem)] lg:basis-[calc(33.333%_-_1rem)] max-w-lg glass rounded-[1.75rem] p-7 transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary-500/15 hover:ring-1 hover:ring-secondary-400/40 ${
+                inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+              }`}
+              style={{ transitionDelay: `${index * 120 + 150}ms` }}
+            >
+              {/* Ghost index */}
+              <span className="absolute top-5 right-6 text-4xl font-extrabold text-primary-500/10 dark:text-primary-300/10 select-none pointer-events-none">
+                0{index + 1}
+              </span>
+
+              {/* Icon */}
+              <div className="relative inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-6 bg-gradient-to-br from-primary-600 to-primary-700 dark:from-primary-500 dark:to-primary-800 text-white shadow-lg shadow-primary-500/25 ring-1 ring-secondary-300/40 group-hover:scale-110 group-hover:ring-secondary-300/70 transition-all duration-300">
+                <PrivacyIcon type={feature.icon} />
+              </div>
+
+              {/* Content */}
+              <h3 className="text-[13px] font-extrabold uppercase tracking-[0.18em] text-gray-800 dark:text-white mb-3 group-hover:text-secondary-700 dark:group-hover:text-secondary-300 transition-colors duration-300">
+                {feature.title}
+              </h3>
+              <p className="text-sm leading-relaxed text-gray-500 dark:text-gray-400">{feature.text}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Trust statement + indicators */}
+        <div
+          className={`text-center mt-16 transition-all duration-700 ${inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+          style={{ transitionDelay: '800ms' }}
+        >
+          <p className="text-lg sm:text-2xl font-bold text-gray-800 dark:text-white">
+            Privacy isn’t an option. It’s the foundation of{' '}
+            <span className="gradient-text">{APP_NAME}</span>.
+          </p>
+
+          {/* Security indicators */}
+          <div className="flex flex-wrap items-center justify-center gap-3 mt-8">
+            {privacyIndicators.map((indicator) => (
+              <span
+                key={indicator}
+                className="inline-flex items-center gap-2 px-4 py-2 glass rounded-full text-sm font-medium text-gray-600 dark:text-gray-300 border border-primary-500/10"
+              >
+                {indicator}
+              </span>
+            ))}
+          </div>
+
+          {/* Learn more */}
+          <button
+            onClick={scrollToPrivacyDetails}
+            className="group inline-flex items-center gap-2 px-7 py-3 mt-10 text-sm font-semibold text-secondary-700 dark:text-secondary-300 rounded-full border border-secondary-400/40 hover:bg-secondary-500/10 hover:border-secondary-400/70 transition-all duration-300 hover:scale-[1.03] active:scale-95"
+          >
+            Learn More About Privacy
+            <FiArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
+          </button>
+        </div>
+
+        {/* Detailed privacy notes (anchor target) */}
+        <div
+          id="privacy-details"
+          ref={detailsRef}
+          className={`max-w-5xl mx-auto mt-16 sm:mt-20 transition-all duration-700 ${detailsInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
+        >
+          <div className="glass rounded-[2rem] p-8 sm:p-10 shadow-xl shadow-primary-900/5">
+            <div className="flex items-center gap-2 mb-8">
+              <FiLock className="w-4 h-4 text-secondary-600 dark:text-secondary-300" />
+              <h3 className="text-sm font-extrabold uppercase tracking-[0.18em] text-gray-800 dark:text-white">
+                A closer look
+              </h3>
+            </div>
+            <div className="grid md:grid-cols-3 gap-8">
+              {privacyDetails.map((group) => (
+                <div key={group.title}>
+                  <h4 className="text-xs font-bold uppercase tracking-[0.16em] text-secondary-600 dark:text-secondary-300 mb-4">
+                    {group.title}
+                  </h4>
+                  <ul className="space-y-3">
+                    {group.points.map((point) => (
+                      <li key={point} className="flex items-start gap-2.5 text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+                        <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-secondary-400 flex-shrink-0" />
+                        {point}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
 // ==================== FOOTER ====================
 const Footer = () => (
   <footer className="relative py-8 border-t border-primary-500/10">
@@ -603,10 +824,10 @@ const Footer = () => (
         {/* Logo */}
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-xl overflow-hidden">
-            <img src="/mahaa-logo.svg" alt="Mahaa Verse" className="w-full h-full" />
+            <img src={APP_LOGO} alt={APP_NAME} className="w-full h-full" />
           </div>
           <span className="text-lg font-extrabold text-gray-900 dark:text-white">
-            Mahaa <span className="gradient-text">Verse</span>
+            {APP_NAME_MAIN} <span className="gradient-text">{APP_NAME_ACCENT}</span>
           </span>
         </div>
 
@@ -618,7 +839,7 @@ const Footer = () => (
 
         {/* Copyright */}
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          © {new Date().getFullYear()} Mahaa Verse. All rights reserved.
+          © {new Date().getFullYear()} {APP_NAME}. All rights reserved.
         </p>
       </div>
     </div>
@@ -639,6 +860,7 @@ const HomePage = () => {
     <div className="min-h-screen overflow-x-hidden">
       <Navbar />
       <HeroSection />
+      <PrivacySection />
       <FeaturesSection />
       <HowItWorksSection />
       <StatsSection />

@@ -1,3 +1,4 @@
+import { APP_NAME, APP_LOGO } from '../../config';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useChat } from '../../context/ChatContext';
@@ -313,9 +314,9 @@ const ChatSidebar = ({ isMobileOpen, onCloseMobile }) => {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <div className="w-9 h-9 glass rounded-2xl flex items-center justify-center hover-glow transition-all duration-300 hover:scale-110 shadow-md shadow-primary-500/20">
-              <img src="/mahaa-logo.svg" alt="Mahaa Verse" className="w-6 h-6" />
+              <img src={APP_LOGO} alt={APP_NAME} className="w-6 h-6" />
             </div>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white gradient-text">Mahaa Verse</h1>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white gradient-text">{APP_NAME}</h1>
           </div>
           <div className="flex items-center gap-1">
             <button

@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const { appName } = require('../config/app');
 
 /**
  * Send an email using Nodemailer
@@ -26,7 +27,7 @@ const sendEmail = async (options) => {
 
     // Email options
     const mailOptions = {
-      from: `"${process.env.FROM_NAME || 'Mahaa Verse'}" <${process.env.FROM_EMAIL}>`,
+      from: `"${process.env.FROM_NAME || appName}" <${process.env.FROM_EMAIL}>`,
       to: options.email,
       subject: options.subject,
       text: options.message,

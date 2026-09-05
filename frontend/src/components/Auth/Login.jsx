@@ -1,3 +1,4 @@
+import { APP_NAME, APP_LOGO } from '../../config';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -59,7 +60,7 @@ const Login = () => {
         {/* Logo */}
         <div className="text-center mb-8 animate-fade-in-down">
           <div className="inline-flex items-center justify-center w-16 h-16 glass rounded-3xl mb-4 shadow-lg shadow-primary-500/20 animate-float hover-glow">
-            <img src="/mahaa-logo.svg" alt="Mahaa Verse" className="w-11 h-11" />
+            <img src={APP_LOGO} alt={APP_NAME} className="w-11 h-11" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome Back</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-2">Sign in to continue chatting</p>

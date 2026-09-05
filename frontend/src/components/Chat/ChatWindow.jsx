@@ -1,3 +1,4 @@
+import { APP_NAME, APP_LOGO } from '../../config';
 import { useState, useEffect } from 'react';
 import { useChat } from '../../context/ChatContext';
 import { useAuth } from '../../context/AuthContext';
@@ -230,7 +231,7 @@ const ChatWindow = () => {
           <div className="mb-8 animate-fade-in-down">
             <div className="relative inline-block">
               <div className="w-28 h-28 glass rounded-[2rem] flex items-center justify-center mx-auto shadow-xl shadow-primary-500/20 animate-float hover-glow transition-all duration-500 hover:scale-105">
-                <img src="/mahaa-logo.svg" alt="Mahaa Verse" className="w-16 h-16" />
+                <img src={APP_LOGO} alt={APP_NAME} className="w-16 h-16" />
               </div>
               {/* Notification dot */}
               <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white dark:border-dark-900 animate-bounce-slow" />
@@ -242,7 +243,7 @@ const ChatWindow = () => {
           {/* Welcome text */}
           <div className="animate-fade-in-up" style={{ animationDelay: '0.2s', animationFillMode: 'both' }}>
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">
-              Welcome to <span className="gradient-text">Mahaa Verse</span>
+              Welcome to <span className="gradient-text">{APP_NAME}</span>
             </h2>
             <p className="text-gray-500 dark:text-gray-400 text-base leading-relaxed mb-8">
               Connect with friends, share moments, and stay in touch — all in real time.

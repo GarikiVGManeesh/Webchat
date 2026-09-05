@@ -5,6 +5,7 @@ const sendEmail = require('../utils/sendEmail');
 const sendSMS = require('../utils/sendSMS');
 const crypto = require('crypto');
 const { validationResult } = require('express-validator');
+const { appName } = require('../config/app');
 
 const buildUniqueUsername = async (name, preferredUsername = '') => {
   const normalizedPreferred = preferredUsername
@@ -96,10 +97,10 @@ exports.signup = async (req, res, next) => {
     const verificationEmailHtml = `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9; border-radius: 10px;">
             <div style="text-align: center; padding: 20px 0;">
-              <h1 style="color: #7C3AED; margin: 0;">Mahaa Verse</h1>
+              <h1 style="color: #7C3AED; margin: 0;">${appName}</h1>
             </div>
             <div style="background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-              <h2 style="color: #333; margin-top: 0;">Welcome to Mahaa Verse!</h2>
+              <h2 style="color: #333; margin-top: 0;">Welcome to ${appName}!</h2>
               <p style="color: #666; line-height: 1.6;">Hi ${user.name},</p>
               <p style="color: #666; line-height: 1.6;">Thank you for creating an account. Please verify your email address by clicking the button below:</p>
               <div style="text-align: center; margin: 30px 0;">
@@ -120,7 +121,7 @@ exports.signup = async (req, res, next) => {
     // Fire the verification email without blocking the response.
     sendEmail({
       email: user.email,
-      subject: 'Verify your email - Mahaa Verse',
+      subject: `Verify your email - ${appName}`,
       html: verificationEmailHtml,
     }).catch((emailError) => {
       // If email fails, the account still exists; user can resend verification.
@@ -218,7 +219,7 @@ exports.sendOTP = async (req, res, next) => {
     try {
       await sendSMS({
         to: mobile,
-        message: `Your Mahaa Verse verification code is: ${otpCode}. It expires in ${process.env.OTP_EXPIRE_MINUTES || 10} minutes. Do not share this code.`,
+        message: `Your ${appName} verification code is: ${otpCode}. It expires in ${process.env.OTP_EXPIRE_MINUTES || 10} minutes. Do not share this code.`,
       });
     } catch (smsError) {
       console.error('SMS send failed, logging OTP:', smsError.message);
@@ -384,7 +385,7 @@ exports.resendVerification = async (req, res, next) => {
 
     await sendEmail({
       email: user.email,
-      subject: 'Verify your email - Mahaa Verse',
+      subject: `Verify your email - ${appName}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <h2 style="color: #333;">Email Verification</h2>
@@ -441,11 +442,11 @@ exports.forgotPassword = async (req, res, next) => {
     try {
       await sendEmail({
         email: user.email,
-        subject: 'Password Reset - Mahaa Verse',
+        subject: `Password Reset - ${appName}`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9; border-radius: 10px;">
             <div style="text-align: center; padding: 20px 0;">
-              <h1 style="color: #7C3AED; margin: 0;">Mahaa Verse</h1>
+              <h1 style="color: #7C3AED; margin: 0;">${appName}</h1>
             </div>
             <div style="background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
               <h2 style="color: #333; margin-top: 0;">Reset Your Password</h2>
@@ -534,7 +535,7 @@ exports.resetPassword = async (req, res, next) => {
     try {
       await sendEmail({
         email: user.email,
-        subject: 'Password Reset Successful - Mahaa Verse',
+        subject: `Password Reset Successful - ${appName}`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <h2 style="color: #333;">Password Reset Successful</h2>

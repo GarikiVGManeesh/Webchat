@@ -1,3 +1,4 @@
+import { APP_NAME, APP_VERSION } from '../config';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -359,7 +360,7 @@ const SettingsPage = () => {
         {/* App Info */}
         <div className="text-center py-4">
           <p className="text-xs text-gray-400 dark:text-gray-500">
-            Mahaa Verse v2.0.0
+            {APP_NAME} v{APP_VERSION}
           </p>
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
             Built with React, Node.js, MongoDB & Socket.IO

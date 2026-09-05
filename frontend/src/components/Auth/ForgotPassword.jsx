@@ -34,7 +34,7 @@ const ForgotPassword = () => {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 glass rounded-3xl mb-4 shadow-lg shadow-primary-500/20">
-            <img src="/echo-logo.svg" alt="Echo" className="w-11 h-11" />
+            <img src="/mahaa-logo.svg" alt="Mahaa Verse" className="w-11 h-11" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Forgot Password?</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-2">

@@ -106,7 +106,7 @@ const CreateGroupModal = ({ onClose, onGroupCreated }) => {
               {step === 1 ? 'Select Members' : 'Group Details'}
             </h3>
           </div>
-          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-teal-500/10 dark:hover:bg-white/5 rounded-lg transition-all">
+          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-primary-500/10 dark:hover:bg-white/5 rounded-lg transition-all">
             <FiX className="w-5 h-5" />
           </button>
         </div>
@@ -155,7 +155,7 @@ const CreateGroupModal = ({ onClose, onGroupCreated }) => {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search users or pick from friends..."
-                  className="w-full pl-10 pr-4 py-2.5 bg-teal-500/10 dark:bg-white/5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-900 dark:text-white placeholder-gray-400"
+                  className="w-full pl-10 pr-4 py-2.5 bg-primary-500/10 dark:bg-white/5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-900 dark:text-white placeholder-gray-400"
                 />
               </div>
             </div>
@@ -191,7 +191,7 @@ const CreateGroupModal = ({ onClose, onGroupCreated }) => {
                       key={u._id}
                       onClick={() => toggleUser(u)}
                       className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${
-                        isSelected ? 'bg-primary-500/10 dark:bg-primary-500/10 ring-1 ring-primary-300 dark:ring-primary-700' : 'hover:bg-teal-500/10 dark:hover:bg-white/5'
+                        isSelected ? 'bg-primary-500/10 dark:bg-primary-500/10 ring-1 ring-primary-300 dark:ring-primary-700' : 'hover:bg-primary-500/10 dark:hover:bg-white/5'
                       }`}
                     >
                       {u.avatar ? (
@@ -248,7 +248,7 @@ const CreateGroupModal = ({ onClose, onGroupCreated }) => {
                   onChange={(e) => setGroupName(e.target.value)}
                   placeholder="e.g. Project Team, Weekend Plans"
                   maxLength={100}
-                  className="w-full px-4 py-2.5 bg-teal-500/10 dark:bg-white/5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-900 dark:text-white placeholder-gray-400"
+                  className="w-full px-4 py-2.5 bg-primary-500/10 dark:bg-white/5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-900 dark:text-white placeholder-gray-400"
                   autoFocus
                 />
                 <p className="text-xs text-gray-400 mt-1 text-right">{groupName.length}/100</p>
@@ -265,7 +265,7 @@ const CreateGroupModal = ({ onClose, onGroupCreated }) => {
                   placeholder="What is this group about?"
                   maxLength={500}
                   rows={3}
-                  className="w-full px-4 py-2.5 bg-teal-500/10 dark:bg-white/5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-900 dark:text-white resize-none placeholder-gray-400"
+                  className="w-full px-4 py-2.5 bg-primary-500/10 dark:bg-white/5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-900 dark:text-white resize-none placeholder-gray-400"
                 />
                 <p className="text-xs text-gray-400 mt-1 text-right">{description.length}/500</p>
               </div>
@@ -294,7 +294,7 @@ const CreateGroupModal = ({ onClose, onGroupCreated }) => {
                   {selectedUsers.map((u) => (
                     <div
                       key={u._id}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-teal-500/10 dark:bg-white/5 rounded-lg"
+                      className="flex items-center gap-2 px-3 py-1.5 bg-primary-500/10 dark:bg-white/5 rounded-lg"
                     >
                       {u.avatar ? (
                         <img src={u.avatar} alt="" className="w-5 h-5 rounded-full object-cover" />
@@ -317,7 +317,7 @@ const CreateGroupModal = ({ onClose, onGroupCreated }) => {
             <div className="p-4 border-t border-gray-200 dark:border-dark-700 flex gap-2">
               <button
                 onClick={() => setStep(1)}
-                className="flex items-center justify-center gap-1 flex-1 py-2.5 bg-teal-500/10 dark:bg-white/5 text-gray-700 dark:text-gray-300 rounded-xl font-medium transition-all hover:bg-teal-500/20 dark:hover:bg-white/10"
+                className="flex items-center justify-center gap-1 flex-1 py-2.5 bg-primary-500/10 dark:bg-white/5 text-gray-700 dark:text-gray-300 rounded-xl font-medium transition-all hover:bg-primary-500/20 dark:hover:bg-white/10"
               >
                 <FiChevronLeft className="w-4 h-4" />
                 Back

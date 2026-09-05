@@ -171,7 +171,7 @@ const GroupInfoPanel = ({ chat, onClose, onChatUpdated }) => {
         <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-200 dark:border-dark-700 flex-shrink-0">
           <button
             onClick={onClose}
-            className="p-1.5 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-teal-500/10 dark:hover:bg-white/5 rounded-lg transition-all"
+            className="p-1.5 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-primary-500/10 dark:hover:bg-white/5 rounded-lg transition-all"
           >
             <FiChevronLeft className="w-5 h-5" />
           </button>
@@ -181,7 +181,7 @@ const GroupInfoPanel = ({ chat, onClose, onChatUpdated }) => {
           {isAdmin && !isEditing && (
             <button
               onClick={() => setIsEditing(true)}
-              className="p-2 text-gray-500 hover:text-primary-500 hover:bg-teal-500/10 dark:hover:bg-white/5 rounded-lg transition-all"
+              className="p-2 text-gray-500 hover:text-primary-500 hover:bg-primary-500/10 dark:hover:bg-white/5 rounded-lg transition-all"
               title="Edit group"
             >
               <FiEdit2 className="w-4 h-4" />
@@ -229,7 +229,7 @@ const GroupInfoPanel = ({ chat, onClose, onChatUpdated }) => {
                   onChange={(e) => setEditName(e.target.value)}
                   maxLength={100}
                   placeholder="Group name"
-                  className="w-full text-center text-lg font-semibold bg-teal-500/10 dark:bg-white/5 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-900 dark:text-white mb-3"
+                  className="w-full text-center text-lg font-semibold bg-primary-500/10 dark:bg-white/5 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-900 dark:text-white mb-3"
                 />
 
                 {/* Editable description */}
@@ -239,7 +239,7 @@ const GroupInfoPanel = ({ chat, onClose, onChatUpdated }) => {
                   maxLength={500}
                   placeholder="Group description (optional)"
                   rows={3}
-                  className="w-full text-center text-sm bg-teal-500/10 dark:bg-white/5 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-600 dark:text-gray-300 resize-none"
+                  className="w-full text-center text-sm bg-primary-500/10 dark:bg-white/5 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-600 dark:text-gray-300 resize-none"
                 />
 
                 {/* Save / Cancel */}
@@ -252,7 +252,7 @@ const GroupInfoPanel = ({ chat, onClose, onChatUpdated }) => {
                       setEditAvatar(null);
                       setAvatarPreview(null);
                     }}
-                    className="flex-1 py-2 bg-teal-500/10 dark:bg-white/5 text-gray-700 dark:text-gray-300 rounded-xl font-medium transition-all hover:bg-teal-500/20 dark:hover:bg-white/10"
+                    className="flex-1 py-2 bg-primary-500/10 dark:bg-white/5 text-gray-700 dark:text-gray-300 rounded-xl font-medium transition-all hover:bg-primary-500/20 dark:hover:bg-white/10"
                   >
                     Cancel
                   </button>
@@ -331,7 +331,7 @@ const GroupInfoPanel = ({ chat, onClose, onChatUpdated }) => {
                     value={addSearch}
                     onChange={(e) => setAddSearch(e.target.value)}
                     placeholder="Search users to add..."
-                    className="w-full pl-10 pr-4 py-2 bg-teal-500/10 dark:bg-white/5 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-900 dark:text-white"
+                    className="w-full pl-10 pr-4 py-2 bg-primary-500/10 dark:bg-white/5 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-900 dark:text-white"
                     autoFocus
                   />
                 </div>
@@ -342,7 +342,7 @@ const GroupInfoPanel = ({ chat, onClose, onChatUpdated }) => {
                     {addSearchResults.map((u) => (
                       <div
                         key={u._id}
-                        className="flex items-center gap-3 p-2 rounded-lg hover:bg-teal-500/10 dark:hover:bg-white/5 transition-all"
+                        className="flex items-center gap-3 p-2 rounded-lg hover:bg-primary-500/10 dark:hover:bg-white/5 transition-all"
                       >
                         {u.avatar ? (
                           <img
@@ -393,7 +393,7 @@ const GroupInfoPanel = ({ chat, onClose, onChatUpdated }) => {
                 return (
                   <div
                     key={member._id}
-                    className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-teal-500/10 dark:hover:bg-white/5 transition-all group"
+                    className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-primary-500/10 dark:hover:bg-white/5 transition-all group"
                   >
                     {/* Avatar with online indicator */}
                     <div className="relative flex-shrink-0">
@@ -473,7 +473,7 @@ const GroupInfoPanel = ({ chat, onClose, onChatUpdated }) => {
               <div className="flex gap-2">
                 <button
                   onClick={() => setConfirmLeave(false)}
-                  className="flex-1 py-2.5 bg-teal-500/10 dark:bg-white/5 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-teal-500/20 dark:hover:bg-white/10 transition-all"
+                  className="flex-1 py-2.5 bg-primary-500/10 dark:bg-white/5 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-primary-500/20 dark:hover:bg-white/10 transition-all"
                 >
                   Cancel
                 </button>

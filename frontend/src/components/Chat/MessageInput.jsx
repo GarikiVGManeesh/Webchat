@@ -162,7 +162,7 @@ const MessageInput = ({ replyTo, onClearReply }) => {
   if (!activeChat) return null;
 
   return (
-    <div className="flex-shrink-0 border-t border-teal-500/10 bg-white/60 dark:bg-dark-900/60 backdrop-blur-xl">
+    <div className="flex-shrink-0 border-t border-primary-500/10 bg-white/60 dark:bg-dark-900/60 backdrop-blur-xl">
       {/* Reply Preview */}
       {replyTo && (
         <div className="px-4 py-2 bg-gray-50 dark:bg-dark-700/50 border-b border-gray-200 dark:border-dark-600 flex items-center gap-3">
@@ -188,7 +188,7 @@ const MessageInput = ({ replyTo, onClearReply }) => {
           <button
             type="button"
             onClick={() => setShowAttachMenu(!showAttachMenu)}
-            className="p-2.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-teal-500/10 dark:hover:bg-white/5 rounded-lg transition-all"
+            className="p-2.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-primary-500/10 dark:hover:bg-white/5 rounded-lg transition-all"
           >
             <FiPaperclip className="w-5 h-5" />
           </button>
@@ -204,7 +204,7 @@ const MessageInput = ({ replyTo, onClearReply }) => {
                     fileInputRef.current.click();
                     setShowAttachMenu(false);
                   }}
-                  className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-teal-500/10 dark:hover:bg-white/5 transition-all"
+                  className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-primary-500/10 dark:hover:bg-white/5 transition-all"
                 >
                   <div className="p-2 bg-accent-100 dark:bg-accent-900/30 rounded-full">
                     <FiImage className="w-4 h-4 text-accent-500" />
@@ -218,7 +218,7 @@ const MessageInput = ({ replyTo, onClearReply }) => {
                     fileInputRef.current.click();
                     setShowAttachMenu(false);
                   }}
-                  className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-teal-500/10 dark:hover:bg-white/5 transition-all"
+                  className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-primary-500/10 dark:hover:bg-white/5 transition-all"
                 >
                   <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-full">
                     <FiVideo className="w-4 h-4 text-blue-500" />
@@ -232,7 +232,7 @@ const MessageInput = ({ replyTo, onClearReply }) => {
                     fileInputRef.current.click();
                     setShowAttachMenu(false);
                   }}
-                  className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-teal-500/10 dark:hover:bg-white/5 transition-all"
+                  className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-primary-500/10 dark:hover:bg-white/5 transition-all"
                 >
                   <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-full">
                     <FiFile className="w-4 h-4 text-orange-500" />
@@ -243,7 +243,7 @@ const MessageInput = ({ replyTo, onClearReply }) => {
                 <button
                   type="button"
                   onClick={handleShareLocation}
-                  className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-teal-500/10 dark:hover:bg-white/5 transition-all"
+                  className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-primary-500/10 dark:hover:bg-white/5 transition-all"
                 >
                   <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-full">
                     <FiMapPin className="w-4 h-4 text-green-500" />

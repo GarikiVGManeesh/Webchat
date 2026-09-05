@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 768" role="img" aria-labelledby="title desc">
+  <title id="title">Mahaa Verse logo</title>
+  <desc id="desc">Purple and gold MA monogram inside a speech bubble ring</desc>
+  <defs>
+    <linearGradient id="ring" x1="18%" y1="16%" x2="82%" y2="84%">
+      <stop offset="0" stop-color="#d98aff"/>
+      <stop offset=".28" stop-color="#8e28ed"/>
+      <stop offset=".55" stop-color="#f29b4b"/>
+      <stop offset=".82" stop-color="#ffd75b"/>
+      <stop offset="1" stop-color="#c98218"/>
+    </linearGradient>
+    <linearGradient id="m" x1="12%" y1="4%" x2="86%" y2="96%">
+      <stop offset="0" stop-color="#f0a3ff"/>
+      <stop offset=".38" stop-color="#a62cea"/>
+      <stop offset="1" stop-color="#4d0a9c"/>
+    </linearGradient>
+    <linearGradient id="a" x1="30%" y1="0" x2="72%" y2="100%">
+      <stop offset="0" stop-color="#fff18a"/>
+      <stop offset=".5" stop-color="#ffca43"/>
+      <stop offset="1" stop-color="#c8790c"/>
+    </linearGradient>
+    <filter id="shadow" x="-25%" y="-25%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#000" flood-opacity=".55"/>
+    </filter>
+  </defs>
+  <rect width="768" height="768" fill="#10051d"/>
+  <path d="M603 476a242 242 0 1 0-391 72l-15 70 76-34a242 242 0 0 0 330-108" fill="none" stroke="#2d0a52" stroke-width="38"/>
+  <path d="M603 476a242 242 0 1 0-391 72l-15 70 76-34a242 242 0 0 0 330-108" fill="none" stroke="url(#ring)" stroke-width="18" stroke-linecap="round" filter="url(#shadow)"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round" filter="url(#shadow)">
+    <path d="M227 502V248l121 121 124-121" stroke="#35105a" stroke-width="42"/>
+    <path d="M227 502V248l121 121 124-121" stroke="url(#m)" stroke-width="25"/>
+    <path d="M372 502l120-226 112 226M430 409h118" stroke="#4c2706" stroke-width="43"/>
+    <path d="M372 502l120-226 112 226M430 409h118" stroke="url(#a)" stroke-width="26"/>
+  </g>
+  <circle cx="337" cy="556" r="11" fill="url(#a)"/>
+  <circle cx="384" cy="556" r="11" fill="url(#a)"/>
+  <circle cx="431" cy="556" r="11" fill="url(#a)"/>
+</svg>

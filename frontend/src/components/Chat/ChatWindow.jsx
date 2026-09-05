@@ -230,7 +230,7 @@ const ChatWindow = () => {
           <div className="mb-8 animate-fade-in-down">
             <div className="relative inline-block">
               <div className="w-28 h-28 glass rounded-[2rem] flex items-center justify-center mx-auto shadow-xl shadow-primary-500/20 animate-float hover-glow transition-all duration-500 hover:scale-105">
-                <img src="/echo-logo.svg" alt="Echo" className="w-16 h-16" />
+                <img src="/mahaa-logo.svg" alt="Mahaa Verse" className="w-16 h-16" />
               </div>
               {/* Notification dot */}
               <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white dark:border-dark-900 animate-bounce-slow" />
@@ -242,7 +242,7 @@ const ChatWindow = () => {
           {/* Welcome text */}
           <div className="animate-fade-in-up" style={{ animationDelay: '0.2s', animationFillMode: 'both' }}>
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">
-              Welcome to <span className="gradient-text">Echo</span>
+              Welcome to <span className="gradient-text">Mahaa Verse</span>
             </h2>
             <p className="text-gray-500 dark:text-gray-400 text-base leading-relaxed mb-8">
               Connect with friends, share moments, and stay in touch — all in real time.
@@ -307,7 +307,7 @@ const ChatWindow = () => {
   return (
     <div className="flex-1 flex flex-col bg-white/50 dark:bg-dark-900/50 backdrop-blur-xl min-h-0 h-full overflow-hidden">
       {/* Chat Header */}
-      <div className="flex-shrink-0 px-4 py-3 border-b border-teal-500/10 bg-white/60 dark:bg-dark-900/60 backdrop-blur-xl">
+      <div className="flex-shrink-0 px-4 py-3 border-b border-primary-500/10 bg-white/60 dark:bg-dark-900/60 backdrop-blur-xl">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0">
             {/* Mobile back button */}
@@ -372,7 +372,7 @@ const ChatWindow = () => {
             <button
               onClick={() => startCall(otherUser, 'voice')}
               disabled={!otherUser || callState !== 'idle'}
-              className="p-2 text-gray-500 hover:text-green-500 dark:hover:text-green-400 hover:bg-teal-500/10 dark:hover:bg-white/5 rounded-lg transition-all hidden sm:block disabled:opacity-30 disabled:cursor-not-allowed"
+              className="p-2 text-gray-500 hover:text-green-500 dark:hover:text-green-400 hover:bg-primary-500/10 dark:hover:bg-white/5 rounded-lg transition-all hidden sm:block disabled:opacity-30 disabled:cursor-not-allowed"
               title="Voice call"
             >
               <FiPhone className="w-4 h-4" />
@@ -380,14 +380,14 @@ const ChatWindow = () => {
             <button
               onClick={() => startCall(otherUser, 'video')}
               disabled={!otherUser || callState !== 'idle'}
-              className="p-2 text-gray-500 hover:text-primary-500 dark:hover:text-primary-400 hover:bg-teal-500/10 dark:hover:bg-white/5 rounded-lg transition-all hidden sm:block disabled:opacity-30 disabled:cursor-not-allowed"
+              className="p-2 text-gray-500 hover:text-primary-500 dark:hover:text-primary-400 hover:bg-primary-500/10 dark:hover:bg-white/5 rounded-lg transition-all hidden sm:block disabled:opacity-30 disabled:cursor-not-allowed"
               title="Video call"
             >
               <FiVideo className="w-4 h-4" />
             </button>
             <button
               onClick={() => setShowSearch(!showSearch)}
-              className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-teal-500/10 dark:hover:bg-white/5 rounded-lg transition-all"
+              className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-primary-500/10 dark:hover:bg-white/5 rounded-lg transition-all"
               title="Search messages"
             >
               <FiSearch className="w-4 h-4" />
@@ -397,7 +397,7 @@ const ChatWindow = () => {
             <div className="relative">
               <button
                 onClick={() => setShowOptions(!showOptions)}
-                className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-teal-500/10 dark:hover:bg-white/5 rounded-lg transition-all"
+                className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-primary-500/10 dark:hover:bg-white/5 rounded-lg transition-all"
               >
                 <FiMoreVertical className="w-4 h-4" />
               </button>
@@ -406,21 +406,21 @@ const ChatWindow = () => {
                 <div className="absolute right-0 top-full mt-1 w-52 glass rounded-2xl shadow-xl z-50 animate-fade-in-scale overflow-hidden">
                   <div className="py-1">
                     {activeChat.isGroup && (
-                      <button onClick={() => { setShowOptions(false); setShowGroupInfo(true); }} className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-teal-500/10 dark:hover:bg-white/5 flex items-center gap-3">
+                      <button onClick={() => { setShowOptions(false); setShowGroupInfo(true); }} className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-primary-500/10 dark:hover:bg-white/5 flex items-center gap-3">
                         <FiUsers className="w-4 h-4" /> Group Info
                       </button>
                     )}
-                    <button onClick={() => { setShowOptions(false); window.open(`/users/${otherUser?._id}`, '_blank'); }} className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-teal-500/10 dark:hover:bg-white/5 flex items-center gap-3">
+                    <button onClick={() => { setShowOptions(false); window.open(`/users/${otherUser?._id}`, '_blank'); }} className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-primary-500/10 dark:hover:bg-white/5 flex items-center gap-3">
                       <FiUser className="w-4 h-4" /> View Profile
                     </button>
-                    <button onClick={handlePinChat} className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-teal-500/10 dark:hover:bg-white/5 flex items-center gap-3">
+                    <button onClick={handlePinChat} className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-primary-500/10 dark:hover:bg-white/5 flex items-center gap-3">
                       <FiStar className="w-4 h-4" /> Pin Chat
                     </button>
 
                     {/* Disappearing Messages option */}
                     <button
                       onClick={() => { setShowOptions(false); setShowVanishToggle(true); }}
-                      className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-teal-500/10 dark:hover:bg-white/5 flex items-center gap-3"
+                      className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-primary-500/10 dark:hover:bg-white/5 flex items-center gap-3"
                     >
                       <FiClock className="w-4 h-4" />
                       <span className="flex-1">Disappearing Messages</span>
@@ -431,7 +431,7 @@ const ChatWindow = () => {
                       )}
                     </button>
 
-                    <button onClick={handleArchiveChat} className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-teal-500/10 dark:hover:bg-white/5 flex items-center gap-3">
+                    <button onClick={handleArchiveChat} className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-primary-500/10 dark:hover:bg-white/5 flex items-center gap-3">
                       <FiArchive className="w-4 h-4" /> {isArchivedChat ? 'Unarchive Chat' : 'Archive Chat'}
                     </button>
                     <hr className="border-gray-100 dark:border-dark-600" />

@@ -96,17 +96,17 @@ exports.signup = async (req, res, next) => {
     const verificationEmailHtml = `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9; border-radius: 10px;">
             <div style="text-align: center; padding: 20px 0;">
-              <h1 style="color: #6C63FF; margin: 0;">Echo</h1>
+              <h1 style="color: #7C3AED; margin: 0;">Mahaa Verse</h1>
             </div>
             <div style="background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-              <h2 style="color: #333; margin-top: 0;">Welcome to Echo!</h2>
+              <h2 style="color: #333; margin-top: 0;">Welcome to Mahaa Verse!</h2>
               <p style="color: #666; line-height: 1.6;">Hi ${user.name},</p>
               <p style="color: #666; line-height: 1.6;">Thank you for creating an account. Please verify your email address by clicking the button below:</p>
               <div style="text-align: center; margin: 30px 0;">
-                <a href="${verificationUrl}" style="background-color: #6C63FF; color: white; padding: 14px 28px; text-decoration: none; border-radius: 5px; font-size: 16px; display: inline-block;">Verify Email Address</a>
+                <a href="${verificationUrl}" style="background-color: #7C3AED; color: white; padding: 14px 28px; text-decoration: none; border-radius: 5px; font-size: 16px; display: inline-block;">Verify Email Address</a>
               </div>
               <p style="color: #666; line-height: 1.6;">Or copy and paste this link in your browser:</p>
-              <p style="color: #6C63FF; word-break: break-all; font-size: 14px;">${verificationUrl}</p>
+              <p style="color: #7C3AED; word-break: break-all; font-size: 14px;">${verificationUrl}</p>
               <p style="color: #666; line-height: 1.6;">This verification link will expire in 24 hours.</p>
               <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
               <p style="color: #999; font-size: 12px;">If you did not create this account, please ignore this email.</p>
@@ -120,7 +120,7 @@ exports.signup = async (req, res, next) => {
     // Fire the verification email without blocking the response.
     sendEmail({
       email: user.email,
-      subject: 'Verify your email - Echo',
+      subject: 'Verify your email - Mahaa Verse',
       html: verificationEmailHtml,
     }).catch((emailError) => {
       // If email fails, the account still exists; user can resend verification.
@@ -218,7 +218,7 @@ exports.sendOTP = async (req, res, next) => {
     try {
       await sendSMS({
         to: mobile,
-        message: `Your Echo verification code is: ${otpCode}. It expires in ${process.env.OTP_EXPIRE_MINUTES || 10} minutes. Do not share this code.`,
+        message: `Your Mahaa Verse verification code is: ${otpCode}. It expires in ${process.env.OTP_EXPIRE_MINUTES || 10} minutes. Do not share this code.`,
       });
     } catch (smsError) {
       console.error('SMS send failed, logging OTP:', smsError.message);
@@ -384,14 +384,14 @@ exports.resendVerification = async (req, res, next) => {
 
     await sendEmail({
       email: user.email,
-      subject: 'Verify your email - Echo',
+      subject: 'Verify your email - Mahaa Verse',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <h2 style="color: #333;">Email Verification</h2>
           <p>Hi ${user.name},</p>
           <p>Click the button below to verify your email address:</p>
           <div style="text-align: center; margin: 20px 0;">
-            <a href="${verificationUrl}" style="background-color: #6C63FF; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">Verify Email</a>
+            <a href="${verificationUrl}" style="background-color: #7C3AED; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">Verify Email</a>
           </div>
         </div>
       `,
@@ -441,21 +441,21 @@ exports.forgotPassword = async (req, res, next) => {
     try {
       await sendEmail({
         email: user.email,
-        subject: 'Password Reset - Echo',
+        subject: 'Password Reset - Mahaa Verse',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9; border-radius: 10px;">
             <div style="text-align: center; padding: 20px 0;">
-              <h1 style="color: #6C63FF; margin: 0;">Echo</h1>
+              <h1 style="color: #7C3AED; margin: 0;">Mahaa Verse</h1>
             </div>
             <div style="background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
               <h2 style="color: #333; margin-top: 0;">Reset Your Password</h2>
               <p style="color: #666; line-height: 1.6;">Hi ${user.name},</p>
               <p style="color: #666; line-height: 1.6;">You requested a password reset. Click the button below to reset your password:</p>
               <div style="text-align: center; margin: 30px 0;">
-                <a href="${resetUrl}" style="background-color: #6C63FF; color: white; padding: 14px 28px; text-decoration: none; border-radius: 5px; font-size: 16px; display: inline-block;">Reset Password</a>
+                <a href="${resetUrl}" style="background-color: #7C3AED; color: white; padding: 14px 28px; text-decoration: none; border-radius: 5px; font-size: 16px; display: inline-block;">Reset Password</a>
               </div>
               <p style="color: #666; line-height: 1.6;">Or copy and paste this link in your browser:</p>
-              <p style="color: #6C63FF; word-break: break-all; font-size: 14px;">${resetUrl}</p>
+              <p style="color: #7C3AED; word-break: break-all; font-size: 14px;">${resetUrl}</p>
               <p style="color: #666; line-height: 1.6;">This link will expire in 1 hour.</p>
               <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
               <p style="color: #999; font-size: 12px;">If you did not request a password reset, please ignore this email.</p>
@@ -534,7 +534,7 @@ exports.resetPassword = async (req, res, next) => {
     try {
       await sendEmail({
         email: user.email,
-        subject: 'Password Reset Successful - Echo',
+        subject: 'Password Reset Successful - Mahaa Verse',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <h2 style="color: #333;">Password Reset Successful</h2>

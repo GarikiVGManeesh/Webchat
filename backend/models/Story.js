@@ -23,7 +23,7 @@ const StorySchema = new mongoose.Schema(
     },
     backgroundColor: {
       type: String,
-      default: '#6C63FF',
+      default: '#7C3AED',
     },
     viewers: [
       {

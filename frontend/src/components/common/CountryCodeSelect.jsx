@@ -90,7 +90,7 @@ const CountryCodeSelect = ({ value, onChange }) => {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1.5 px-3 py-3 border border-teal-500/20 bg-white/60 dark:bg-white/5 rounded-l-lg hover:bg-teal-500/10 dark:hover:bg-white/10 transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 h-full backdrop-blur-xl"
+        className="flex items-center gap-1.5 px-3 py-3 border border-primary-500/20 bg-white/60 dark:bg-white/5 rounded-l-lg hover:bg-primary-500/10 dark:hover:bg-white/10 transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 h-full backdrop-blur-xl"
       >
         <span className="text-lg leading-none">{selected.flag}</span>
         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{selected.code}</span>

@@ -12,14 +12,14 @@ const ProtectedRoute = ({ children }) => {
           {/* Animated Logo */}
           <div className="relative inline-block mb-6">
             <div className="w-20 h-20 mx-auto glass rounded-[1.75rem] flex items-center justify-center shadow-xl shadow-primary-500/20 animate-float">
-              <img src="/echo-logo.svg" alt="Echo" className="w-12 h-12" />
+              <img src="/mahaa-logo.svg" alt="Mahaa Verse" className="w-12 h-12" />
             </div>
             {/* Spinning ring */}
             <div className="absolute inset-0 w-20 h-20 rounded-3xl border-2 border-t-primary-500 border-r-primary-300 border-b-transparent border-l-transparent animate-spin" style={{ animationDuration: '1.5s' }} />
           </div>
 
           <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-1">
-            Echo
+            Mahaa Verse
           </h2>
           <p className="text-sm text-gray-400 dark:text-gray-500">
             Loading your conversations...

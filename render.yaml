@@ -33,7 +33,7 @@ services:
       - key: FROM_EMAIL
         sync: false
       - key: FROM_NAME
-        value: Echo
+        value: Mahaa Verse
       - key: TWILIO_ACCOUNT_SID
         sync: false
       - key: TWILIO_AUTH_TOKEN

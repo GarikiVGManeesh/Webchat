@@ -94,7 +94,7 @@ const VanishModeToggle = ({ chatId, currentMode = 'off', onClose }) => {
               className={`w-full px-4 py-3 flex items-center gap-3 transition-all duration-200 relative overflow-hidden ${
                 isSelected
                   ? 'bg-primary-50 dark:bg-primary-900/20'
-                  : 'hover:bg-teal-500/10 dark:hover:bg-white/5'
+                  : 'hover:bg-primary-500/10 dark:hover:bg-white/5'
               } ${isUpdating && !isAnimating ? 'opacity-50' : ''}`}
               style={{ animationDelay: `${index * 50}ms` }}
             >

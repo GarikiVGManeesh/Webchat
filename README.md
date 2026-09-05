@@ -1,4 +1,4 @@
-# 💬 Echo - Real-Time Full Stack Messenger
+# 💬 Mahaa Verse - Real-Time Full Stack Messenger
 
 A **production-ready** real-time chat application built with the **MERN Stack** (MongoDB, Express.js, React.js, Node.js) and **Socket.IO**. Features end-to-end messaging, user authentication, file sharing, and a modern responsive UI with dark/light theme support.
 
@@ -13,7 +13,7 @@ A **production-ready** real-time chat application built with the **MERN Stack** 
 
 | Landing Page | Sign In |
 |--------------|---------|
-| ![Echo Landing Page](screenshots/home.png) | ![Echo Sign In](screenshots/login.png) |
+| ![Mahaa Verse Landing Page](screenshots/home.png) | ![Mahaa Verse Sign In](screenshots/login.png) |
 
 ---
 
@@ -429,7 +429,7 @@ CLOUDINARY_API_SECRET=your_api_secret
 EMAIL_USER=your_email@gmail.com
 EMAIL_PASS=your_gmail_app_password
 FROM_EMAIL=your_email@gmail.com
-FROM_NAME=Echo
+FROM_NAME=Mahaa Verse
 
 # Twilio (only needed for Mobile OTP login)
 TWILIO_ACCOUNT_SID=your_account_sid
@@ -502,7 +502,7 @@ NODE_ENV=production npm start
 | `EMAIL_USER` | Gmail address used to send emails | **Yes** | - |
 | `EMAIL_PASS` | Gmail app password | **Yes** | - |
 | `FROM_EMAIL` | Sender email address | **Yes** | - |
-| `FROM_NAME` | Sender display name | No | Echo |
+| `FROM_NAME` | Sender display name | No | Mahaa Verse |
 | `TWILIO_ACCOUNT_SID` | Twilio account SID (mobile OTP) | No* | - |
 | `TWILIO_AUTH_TOKEN` | Twilio auth token (mobile OTP) | No* | - |
 | `TWILIO_PHONE_NUMBER` | Twilio sender number (mobile OTP) | No* | - |
@@ -579,7 +579,7 @@ npm run dev
 ## 📝 Changelog
 
 ### v2.0.0 (Rebrand & New Features)
-- Rebranded from Nexora to **Echo**
+- Rebranded from Nexora to **Echo**, then to **Mahaa Verse**
 - Group chats with member management
 - Voice & video calls (WebRTC)
 - Stories (text, image & video with 24h expiry)
@@ -644,5 +644,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 <div align="center">
   <p>Built with ❤️ using the MERN Stack & Socket.IO</p>
-  <p>© 2026 Echo. All rights reserved.</p>
+  <p>© 2026 Mahaa Verse. All rights reserved.</p>
 </div>

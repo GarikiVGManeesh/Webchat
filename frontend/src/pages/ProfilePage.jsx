@@ -77,7 +77,7 @@ const ProfilePage = () => {
   return (
     <div className="min-h-screen page-enter">
       {/* Header */}
-      <div className="bg-white/70 dark:bg-dark-900/60 backdrop-blur-xl border-b border-teal-500/10">
+      <div className="bg-white/70 dark:bg-dark-900/60 backdrop-blur-xl border-b border-primary-500/10">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
           <button
             onClick={() => navigate('/chats')}

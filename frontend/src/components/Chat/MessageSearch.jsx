@@ -253,7 +253,7 @@ const MessageSearch = ({
           <button
             onClick={goToPrevious}
             disabled={totalCount === 0}
-            className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-teal-500/10 dark:hover:bg-white/5 rounded-md transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-primary-500/10 dark:hover:bg-white/5 rounded-md transition-all disabled:opacity-30 disabled:cursor-not-allowed"
             title="Previous result (Shift+Enter)"
           >
             <FiChevronUp className="w-4 h-4" />
@@ -261,7 +261,7 @@ const MessageSearch = ({
           <button
             onClick={goToNext}
             disabled={totalCount === 0}
-            className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-teal-500/10 dark:hover:bg-white/5 rounded-md transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-primary-500/10 dark:hover:bg-white/5 rounded-md transition-all disabled:opacity-30 disabled:cursor-not-allowed"
             title="Next result (Enter)"
           >
             <FiChevronDown className="w-4 h-4" />
@@ -271,7 +271,7 @@ const MessageSearch = ({
         {/* Close button */}
         <button
           onClick={handleClose}
-          className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-teal-500/10 dark:hover:bg-white/5 rounded-md transition-all"
+          className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-primary-500/10 dark:hover:bg-white/5 rounded-md transition-all"
           title="Close search (Esc)"
         >
           <FiX className="w-4 h-4" />
@@ -292,7 +292,7 @@ const MessageSearch = ({
               className={`w-full px-3 py-2.5 text-left flex items-start gap-3 transition-colors border-b border-gray-50 dark:border-dark-600 last:border-b-0 ${
                 index === activeIndex
                   ? 'bg-primary-50 dark:bg-primary-900/20 border-l-2 border-l-primary-500'
-                  : 'hover:bg-teal-500/10 dark:hover:bg-white/5 border-l-2 border-l-transparent'
+                  : 'hover:bg-primary-500/10 dark:hover:bg-white/5 border-l-2 border-l-transparent'
               }`}
             >
               <div className="flex-1 min-w-0">

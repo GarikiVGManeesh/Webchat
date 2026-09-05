@@ -123,10 +123,10 @@ async function testNodemailer() {
     // Send a test email (optional - uncomment to actually send)
     // console.log(`  ${INFO} Sending test email to ${emailUser}...`);
     // const info = await transporter.sendMail({
-    //   from: `"Echo Test" <${emailUser}>`,
+    //   from: `"Mahaa Verse Test" <${emailUser}>`,
     //   to: emailUser,
-    //   subject: 'Test Email - Echo',
-    //   text: 'This is a test email from your Echo. All services are working!',
+    //   subject: 'Test Email - Mahaa Verse',
+    //   text: 'This is a test email from your Mahaa Verse. All services are working!',
     // });
     // console.log(`  ${PASSED} Test email sent! Message ID: ${info.messageId}`);
 
@@ -139,7 +139,7 @@ async function testNodemailer() {
 
 async function runTests() {
   console.log(`\n\x1b[35m${'='.repeat(60)}\x1b[0m`);
-  console.log(`\x1b[35m     Echo - Service Connection Tests\x1b[0m`);
+  console.log(`\x1b[35m     Mahaa Verse - Service Connection Tests\x1b[0m`);
   console.log(`\x1b[35m${'='.repeat(60)}\x1b[0m`);
   console.log(`  Started: ${new Date().toLocaleString()}`);
 

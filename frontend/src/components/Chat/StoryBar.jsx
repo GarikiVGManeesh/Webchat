@@ -197,7 +197,7 @@ const StoryBar = () => {
                 </button>
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-teal-500/10 dark:bg-white/5 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-teal-500/20 dark:hover:bg-white/10 transition-all"
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-primary-500/10 dark:bg-white/5 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-primary-500/20 dark:hover:bg-white/10 transition-all"
                 >
                   <FiImage className="w-4 h-4" /> Photo/Video
                 </button>

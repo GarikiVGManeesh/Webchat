@@ -124,7 +124,7 @@ const VoiceRecorder = ({ onSendVoice, disabled }) => {
       type="button"
       onClick={startRecording}
       disabled={disabled}
-      className="p-2.5 text-gray-500 dark:text-gray-400 hover:text-primary-500 dark:hover:text-primary-400 hover:bg-teal-500/10 dark:hover:bg-white/5 rounded-lg transition-all disabled:opacity-50"
+      className="p-2.5 text-gray-500 dark:text-gray-400 hover:text-primary-500 dark:hover:text-primary-400 hover:bg-primary-500/10 dark:hover:bg-white/5 rounded-lg transition-all disabled:opacity-50"
       title="Record voice message"
     >
       <FiMic className="w-5 h-5" />

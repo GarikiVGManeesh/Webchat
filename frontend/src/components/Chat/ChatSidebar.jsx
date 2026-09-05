@@ -213,7 +213,7 @@ const ChatSidebar = ({ isMobileOpen, onCloseMobile }) => {
       <button
         key={chat._id}
         onClick={() => handleSelectChat(chat)}
-        className={`chat-item w-full px-4 py-3 flex items-center gap-3 hover:bg-teal-500/10 dark:hover:bg-white/5 ${
+        className={`chat-item w-full px-4 py-3 flex items-center gap-3 hover:bg-primary-500/10 dark:hover:bg-white/5 ${
           isActive
             ? 'bg-primary-500/10 dark:bg-primary-500/10 border-l-2 border-primary-400'
             : ''
@@ -305,17 +305,17 @@ const ChatSidebar = ({ isMobileOpen, onCloseMobile }) => {
   };
 
   return (
-    <div className={`flex flex-col h-full bg-white/70 dark:bg-dark-900/60 backdrop-blur-xl border-r border-teal-500/10 ${
+    <div className={`flex flex-col h-full bg-white/70 dark:bg-dark-900/60 backdrop-blur-xl border-r border-primary-500/10 ${
       isMobileOpen ? 'fixed inset-0 z-40 md:relative md:inset-auto' : ''
     } ${sidebarOpen ? 'w-full md:w-80' : 'w-0 overflow-hidden'}`}>
       {/* Header */}
-      <div className="flex-shrink-0 p-4 border-b border-teal-500/10">
+      <div className="flex-shrink-0 p-4 border-b border-primary-500/10">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <div className="w-9 h-9 glass rounded-2xl flex items-center justify-center hover-glow transition-all duration-300 hover:scale-110 shadow-md shadow-primary-500/20">
-              <img src="/echo-logo.svg" alt="Echo" className="w-6 h-6" />
+              <img src="/mahaa-logo.svg" alt="Mahaa Verse" className="w-6 h-6" />
             </div>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white gradient-text">Echo</h1>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white gradient-text">Mahaa Verse</h1>
           </div>
           <div className="flex items-center gap-1">
             <button
@@ -330,7 +330,7 @@ const ChatSidebar = ({ isMobileOpen, onCloseMobile }) => {
             <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
-                className="p-2 rounded-lg hover:bg-teal-500/10 dark:hover:bg-white/5 transition-all"
+                className="p-2 rounded-lg hover:bg-primary-500/10 dark:hover:bg-white/5 transition-all"
               >
                 <div
                   className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold"
@@ -347,10 +347,10 @@ const ChatSidebar = ({ isMobileOpen, onCloseMobile }) => {
                     <p className="text-xs text-gray-500 dark:text-gray-400">{user?.email}</p>
                   </div>
                   <div className="py-1">
-                    <button onClick={() => { navigate('/profile'); setShowUserMenu(false); }} className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-teal-500/10 dark:hover:bg-white/5 flex items-center gap-3">
+                    <button onClick={() => { navigate('/profile'); setShowUserMenu(false); }} className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-primary-500/10 dark:hover:bg-white/5 flex items-center gap-3">
                       <FiUser className="w-4 h-4" /> Profile
                     </button>
-                    <button onClick={() => { navigate('/settings'); setShowUserMenu(false); }} className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-teal-500/10 dark:hover:bg-white/5 flex items-center gap-3">
+                    <button onClick={() => { navigate('/settings'); setShowUserMenu(false); }} className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-primary-500/10 dark:hover:bg-white/5 flex items-center gap-3">
                       <FiSettings className="w-4 h-4" /> Settings
                     </button>
                     <hr className="border-gray-100 dark:border-dark-600" />
@@ -394,7 +394,7 @@ const ChatSidebar = ({ isMobileOpen, onCloseMobile }) => {
               <div className="py-1">
                 <p className="px-3 py-2 text-xs font-medium text-gray-400 uppercase tracking-wider">Users</p>
                 {searchResults.map((u) => (
-                  <div key={u._id} className="w-full px-3 py-2.5 flex items-center gap-3 hover:bg-teal-500/10 dark:hover:bg-white/5 transition-all">
+                  <div key={u._id} className="w-full px-3 py-2.5 flex items-center gap-3 hover:bg-primary-500/10 dark:hover:bg-white/5 transition-all">
                     <div
                       className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
                       style={{ backgroundColor: stringToColor(u.name) }}
@@ -431,9 +431,9 @@ const ChatSidebar = ({ isMobileOpen, onCloseMobile }) => {
 
       {/* Sidebar tabs */}
       <div className="flex-shrink-0 px-4 pt-3 flex gap-2">
-        <button onClick={() => setSidebarTab('chats')} className={`px-3 py-1.5 text-xs font-medium rounded-full ${sidebarTab === 'chats' ? 'bg-primary-500 text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-teal-500/10 dark:hover:bg-white/5'}`}>Chats</button>
-        <button onClick={() => setSidebarTab('friends')} className={`px-3 py-1.5 text-xs font-medium rounded-full ${sidebarTab === 'friends' ? 'bg-primary-500 text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-teal-500/10 dark:hover:bg-white/5'}`}>Friends{friends.length ? ` (${friends.length})` : ''}</button>
-        <button onClick={() => setSidebarTab('requests')} className={`px-3 py-1.5 text-xs font-medium rounded-full ${sidebarTab === 'requests' ? 'bg-primary-500 text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-teal-500/10 dark:hover:bg-white/5'}`}>Requests{friendRequests.receivedRequests.length ? ` (${friendRequests.receivedRequests.length})` : ''}</button>
+        <button onClick={() => setSidebarTab('chats')} className={`px-3 py-1.5 text-xs font-medium rounded-full ${sidebarTab === 'chats' ? 'bg-primary-500 text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-primary-500/10 dark:hover:bg-white/5'}`}>Chats</button>
+        <button onClick={() => setSidebarTab('friends')} className={`px-3 py-1.5 text-xs font-medium rounded-full ${sidebarTab === 'friends' ? 'bg-primary-500 text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-primary-500/10 dark:hover:bg-white/5'}`}>Friends{friends.length ? ` (${friends.length})` : ''}</button>
+        <button onClick={() => setSidebarTab('requests')} className={`px-3 py-1.5 text-xs font-medium rounded-full ${sidebarTab === 'requests' ? 'bg-primary-500 text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-primary-500/10 dark:hover:bg-white/5'}`}>Requests{friendRequests.receivedRequests.length ? ` (${friendRequests.receivedRequests.length})` : ''}</button>
       </div>
 
       {/* Filter Tabs */}
@@ -445,7 +445,7 @@ const ChatSidebar = ({ isMobileOpen, onCloseMobile }) => {
             className={`px-3 py-1.5 text-xs font-medium rounded-full transition-all ${
               filter === f
                 ? 'bg-primary-500 text-white'
-                : 'text-gray-500 dark:text-gray-400 hover:bg-teal-500/10 dark:hover:bg-white/5'
+                : 'text-gray-500 dark:text-gray-400 hover:bg-primary-500/10 dark:hover:bg-white/5'
             }`}
           >
             {f === 'all' ? 'All' : f === 'unread' ? 'Unread' : 'Pinned'}
@@ -468,7 +468,7 @@ const ChatSidebar = ({ isMobileOpen, onCloseMobile }) => {
       <div className="flex-1 overflow-y-auto scrollbar-hide">
         {sidebarTab === 'friends' ? (
           friends.length ? friends.map((friend) => (
-            <button key={friend._id} onClick={() => handleSelectUser(friend._id)} className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-teal-500/10 dark:hover:bg-white/5 transition-all">
+            <button key={friend._id} onClick={() => handleSelectUser(friend._id)} className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-primary-500/10 dark:hover:bg-white/5 transition-all">
               {friend.avatar ? <img src={friend.avatar} alt={friend.name} className="w-11 h-11 rounded-full object-cover" /> : <div className="w-11 h-11 rounded-full flex items-center justify-center text-white text-sm font-bold" style={{ backgroundColor: stringToColor(friend.name) }}>{getInitials(friend.name)}</div>}
               <div className="flex-1 min-w-0"><p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{friend.name}</p><p className="text-xs text-gray-500 dark:text-gray-400 truncate">@{friend.username || 'username'}{onlineUsers.includes(friend._id) ? ' • Online' : ''}</p></div>
               <FiMessageSquare className="w-4 h-4 text-primary-500" />
@@ -480,7 +480,7 @@ const ChatSidebar = ({ isMobileOpen, onCloseMobile }) => {
           ) : (
             <div className="space-y-2 p-3">
               {friendRequests.receivedRequests.map((request) => (
-                <div key={request._id} className="flex items-center gap-3 rounded-2xl bg-teal-500/5 dark:bg-white/5 border border-teal-500/10 p-3">
+                <div key={request._id} className="flex items-center gap-3 rounded-2xl bg-primary-500/5 dark:bg-white/5 border border-primary-500/10 p-3">
                   <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold" style={{ backgroundColor: stringToColor(request.name) }}>{getInitials(request.name)}</div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{request.name}</p>
@@ -493,7 +493,7 @@ const ChatSidebar = ({ isMobileOpen, onCloseMobile }) => {
                 </div>
               ))}
               {friendRequests.sentRequests.map((request) => (
-                <div key={request._id} className="flex items-center gap-3 rounded-2xl bg-teal-500/5 dark:bg-white/5 border border-teal-500/10 p-3">
+                <div key={request._id} className="flex items-center gap-3 rounded-2xl bg-primary-500/5 dark:bg-white/5 border border-primary-500/10 p-3">
                   <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold" style={{ backgroundColor: stringToColor(request.name) }}>{getInitials(request.name)}</div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{request.name}</p>

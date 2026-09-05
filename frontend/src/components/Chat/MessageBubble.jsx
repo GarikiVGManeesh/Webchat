@@ -307,7 +307,7 @@ const MessageBubble = ({ message, isSent, sender, onDelete, onEdit, onReply, onF
             <button
               key={emoji}
               onClick={() => handleReaction(emoji)}
-              className="text-xl w-9 h-9 flex items-center justify-center rounded-lg hover:bg-teal-500/10 dark:hover:bg-white/5 hover:scale-125 transition-all duration-150"
+              className="text-xl w-9 h-9 flex items-center justify-center rounded-lg hover:bg-primary-500/10 dark:hover:bg-white/5 hover:scale-125 transition-all duration-150"
             >
               {emoji}
             </button>
@@ -407,7 +407,7 @@ const MessageBubble = ({ message, isSent, sender, onDelete, onEdit, onReply, onF
               <button
                 key={emoji}
                 onClick={() => handleReaction(emoji)}
-                className="text-lg hover:scale-150 transition-all duration-200 p-1 hover:-translate-y-1.5 rounded-full hover:bg-teal-500/10 dark:hover:bg-white/5"
+                className="text-lg hover:scale-150 transition-all duration-200 p-1 hover:-translate-y-1.5 rounded-full hover:bg-primary-500/10 dark:hover:bg-white/5"
                 style={{ animationDelay: `${index * 40}ms` }}
               >
                 {emoji}
@@ -416,7 +416,7 @@ const MessageBubble = ({ message, isSent, sender, onDelete, onEdit, onReply, onF
             {/* "+" button for full picker */}
             <button
               onClick={() => { setShowFullPicker(!showFullPicker); setShowReactions(false); }}
-              className="w-7 h-7 flex items-center justify-center rounded-full bg-teal-500/10 dark:bg-white/5 hover:bg-teal-500/20 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 transition-all hover:scale-110 ml-0.5"
+              className="w-7 h-7 flex items-center justify-center rounded-full bg-primary-500/10 dark:bg-white/5 hover:bg-primary-500/20 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 transition-all hover:scale-110 ml-0.5"
             >
               <FiPlus className="w-3.5 h-3.5" />
             </button>
@@ -429,18 +429,18 @@ const MessageBubble = ({ message, isSent, sender, onDelete, onEdit, onReply, onF
         {/* Actions dropdown */}
         {showActions && (
           <div className={`absolute -top-12 ${isSent ? 'right-0' : 'left-0'} z-10 bg-white dark:bg-dark-700 rounded-lg shadow-xl border border-gray-200 dark:border-dark-600 flex animate-scale-in`}>
-            <button onClick={() => { setShowReactions(!showReactions); setShowActions(false); }} className="p-2 text-gray-600 dark:text-gray-300 hover:bg-teal-500/10 dark:hover:bg-white/5 rounded-l-lg" title="React">
+            <button onClick={() => { setShowReactions(!showReactions); setShowActions(false); }} className="p-2 text-gray-600 dark:text-gray-300 hover:bg-primary-500/10 dark:hover:bg-white/5 rounded-l-lg" title="React">
               😊
             </button>
             {isSent && !message.editedAt && message.messageType === 'text' && (
-              <button onClick={handleEdit} className="p-2 text-gray-600 dark:text-gray-300 hover:bg-teal-500/10 dark:hover:bg-white/5" title="Edit">
+              <button onClick={handleEdit} className="p-2 text-gray-600 dark:text-gray-300 hover:bg-primary-500/10 dark:hover:bg-white/5" title="Edit">
                 <FiEdit2 className="w-4 h-4" />
               </button>
             )}
-            <button onClick={handleReply} className="p-2 text-gray-600 dark:text-gray-300 hover:bg-teal-500/10 dark:hover:bg-white/5" title="Reply">
+            <button onClick={handleReply} className="p-2 text-gray-600 dark:text-gray-300 hover:bg-primary-500/10 dark:hover:bg-white/5" title="Reply">
               <FiCornerUpLeft className="w-4 h-4" />
             </button>
-            <button onClick={handleForward} className="p-2 text-gray-600 dark:text-gray-300 hover:bg-teal-500/10 dark:hover:bg-white/5" title="Forward">
+            <button onClick={handleForward} className="p-2 text-gray-600 dark:text-gray-300 hover:bg-primary-500/10 dark:hover:bg-white/5" title="Forward">
               <FiShare2 className="w-4 h-4" />
             </button>
             {isSent && (

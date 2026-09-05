@@ -1,5 +1,5 @@
 /**
- * Notification Utilities for Echo Chat
+ * Notification Utilities for Mahaa Verse Chat
  * - Web Audio API notification sound (no external file needed)
  * - Desktop Notification wrapper
  * - Window visibility helpers

@@ -72,17 +72,17 @@ const Navbar = () => {
 
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-      scrolled ? 'glass shadow-lg shadow-teal-900/5' : 'bg-transparent'
+      scrolled ? 'glass shadow-lg shadow-primary-900/5' : 'bg-transparent'
     }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 sm:h-20">
           {/* Logo */}
           <div className="flex items-center gap-2.5 group cursor-pointer">
             <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-2xl overflow-hidden shadow-lg shadow-primary-500/30 group-hover:shadow-primary-500/50 transition-shadow duration-300">
-              <img src="/echo-logo.svg" alt="Echo" className="w-full h-full" />
+              <img src="/mahaa-logo.svg" alt="Mahaa Verse" className="w-full h-full" />
             </div>
             <span className="text-xl sm:text-2xl font-extrabold text-gray-900 dark:text-white">
-              Ech<span className="gradient-text">o</span>
+              Mahaa <span className="gradient-text">Verse</span>
             </span>
           </div>
 
@@ -90,7 +90,7 @@ const Navbar = () => {
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate('/login')}
-              className="hidden sm:inline-flex items-center px-5 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-300 hover:bg-teal-500/10 rounded-full transition-all duration-200"
+              className="hidden sm:inline-flex items-center px-5 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-300 hover:bg-primary-500/10 rounded-full transition-all duration-200"
             >
               Sign In
             </button>
@@ -118,7 +118,7 @@ const ParticleBackground = () => (
 
     {/* Dot grid pattern */}
     <div className="absolute inset-0 opacity-30 dark:opacity-20" style={{
-      backgroundImage: 'radial-gradient(circle, rgba(20,184,166,0.2) 1px, transparent 1px)',
+      backgroundImage: 'radial-gradient(circle, rgba(124,58,237,0.22) 1px, transparent 1px)',
       backgroundSize: '40px 40px'
     }} />
 
@@ -193,8 +193,8 @@ const HeroSection = () => {
                 onClick={() => navigate('/signup')}
                 className="group relative w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-4 text-base font-bold text-white rounded-full transition-all duration-300 hover:scale-105 active:scale-95 animate-glow"
                 style={{
-                  background: 'linear-gradient(135deg, #14b8a6, #10b981)',
-                  boxShadow: '0 12px 32px -10px rgba(20, 184, 166, 0.6)',
+                  background: 'linear-gradient(135deg, #6d28d9, #8b5cf6)',
+                  boxShadow: '0 12px 32px -10px rgba(124, 58, 237, 0.6)',
                 }}
               >
                 Get Started Free
@@ -252,23 +252,23 @@ const ChatMockup = () => (
     <div className="absolute -inset-4 bg-gradient-to-r from-primary-400/25 via-secondary-400/15 to-accent-400/25 rounded-[3rem] blur-2xl" />
 
     {/* Phone frame */}
-    <div className="relative glass rounded-[2.5rem] shadow-2xl shadow-teal-900/10 dark:shadow-black/40 overflow-hidden animate-float" style={{ animationDuration: '6s' }}>
+    <div className="relative glass rounded-[2.5rem] shadow-2xl shadow-primary-900/10 dark:shadow-black/40 overflow-hidden animate-float" style={{ animationDuration: '6s' }}>
       {/* Status bar */}
-      <div className="flex items-center justify-between px-6 py-3 glass border-b border-teal-500/10">
+      <div className="flex items-center justify-between px-6 py-3 glass border-b border-primary-500/10">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center">
             <span className="text-white text-xs font-bold">A</span>
           </div>
           <div>
             <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">Alex Johnson</p>
-            <p className="text-xs text-secondary-600 dark:text-secondary-400">Online</p>
+            <p className="text-xs text-green-600 dark:text-green-400">Online</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-teal-500/10 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full bg-primary-500/10 flex items-center justify-center">
             <FiPhone className="w-4 h-4 text-primary-600 dark:text-primary-400" />
           </div>
-          <div className="w-8 h-8 rounded-full bg-teal-500/10 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full bg-primary-500/10 flex items-center justify-center">
             <FiVideo className="w-4 h-4 text-primary-600 dark:text-primary-400" />
           </div>
         </div>
@@ -278,7 +278,7 @@ const ChatMockup = () => (
       <div className="p-4 space-y-3 bg-white/30 dark:bg-white/[0.02] min-h-[280px] chat-wallpaper">
         <div className="flex justify-start">
           <div className="message-bubble-received">
-            <p className="text-sm">Hey! Have you tried Echo yet? 🚀</p>
+            <p className="text-sm">Hey! Have you tried Mahaa Verse yet? 🚀</p>
             <p className="text-[10px] text-gray-400 mt-1">10:42 AM</p>
           </div>
         </div>
@@ -314,14 +314,14 @@ const ChatMockup = () => (
       </div>
 
       {/* Input bar */}
-      <div className="flex items-center gap-2 px-4 py-3 glass border-t border-teal-500/10">
-        <div className="w-8 h-8 rounded-full bg-teal-500/10 flex items-center justify-center">
+      <div className="flex items-center gap-2 px-4 py-3 glass border-t border-primary-500/10">
+        <div className="w-8 h-8 rounded-full bg-primary-500/10 flex items-center justify-center">
           <FiSmile className="w-4 h-4 text-primary-600 dark:text-primary-400" />
         </div>
-        <div className="flex-1 bg-white/40 dark:bg-white/5 rounded-full px-4 py-2 border border-teal-500/10">
+        <div className="flex-1 bg-white/40 dark:bg-white/5 rounded-full px-4 py-2 border border-primary-500/10">
           <p className="text-xs text-gray-400">Type a message...</p>
         </div>
-        <div className="w-8 h-8 rounded-full flex items-center justify-center shadow-md shadow-primary-500/30" style={{ background: 'linear-gradient(135deg, #14b8a6, #10b981)' }}>
+        <div className="w-8 h-8 rounded-full flex items-center justify-center shadow-md shadow-primary-500/30" style={{ background: 'linear-gradient(135deg, #6d28d9, #8b5cf6)' }}>
           <FiSend className="w-4 h-4 text-white" />
         </div>
       </div>
@@ -366,7 +366,7 @@ const FeaturesSection = () => {
 
   return (
     <section ref={sectionRef} className="relative py-20 sm:py-32 overflow-hidden">
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-teal-500/20 to-transparent" />
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary-500/20 to-transparent" />
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section header */}
@@ -486,7 +486,7 @@ const HowItWorksSection = () => {
                   {/* Step circle */}
                   <div className="relative inline-flex items-center justify-center w-20 h-20 mb-6">
                     <div className="absolute inset-0 bg-gradient-to-br from-primary-400 to-secondary-400 rounded-full opacity-15 animate-pulse-slow" />
-                    <div className="relative w-16 h-16 rounded-full flex items-center justify-center shadow-lg shadow-primary-500/30" style={{ background: 'linear-gradient(135deg, #14b8a6, #10b981)' }}>
+                    <div className="relative w-16 h-16 rounded-full flex items-center justify-center shadow-lg shadow-primary-500/30" style={{ background: 'linear-gradient(135deg, #6d28d9, #8b5cf6)' }}>
                       <Icon className="w-7 h-7 text-white" />
                     </div>
                     {/* Step number badge */}
@@ -515,10 +515,10 @@ const StatsSection = () => {
   return (
     <section ref={ref} className="relative py-16 sm:py-20 overflow-hidden">
       {/* Glass band */}
-      <div className="absolute inset-0 mx-4 sm:mx-8 lg:mx-16 rounded-[3rem] glass shadow-xl shadow-teal-900/5" />
+      <div className="absolute inset-0 mx-4 sm:mx-8 lg:mx-16 rounded-[3rem] glass shadow-xl shadow-primary-900/5" />
       {/* Pattern overlay */}
       <div className="absolute inset-0 mx-4 sm:mx-8 lg:mx-16 rounded-[3rem] opacity-10" style={{
-        backgroundImage: 'radial-gradient(circle, rgba(20,184,166,0.6) 1px, transparent 1px)',
+        backgroundImage: 'radial-gradient(circle, rgba(124,58,237,0.6) 1px, transparent 1px)',
         backgroundSize: '30px 30px'
       }} />
 
@@ -553,7 +553,7 @@ const CTASection = () => {
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary-400/10 rounded-full blur-3xl" />
 
       <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className={`glass rounded-[3rem] p-10 sm:p-16 text-center space-y-8 shadow-xl shadow-teal-900/5 transition-all duration-700 ${inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+        <div className={`glass rounded-[3rem] p-10 sm:p-16 text-center space-y-8 shadow-xl shadow-primary-900/5 transition-all duration-700 ${inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
           {/* Emoji */}
           <div className="text-5xl sm:text-6xl animate-bounce-slow inline-block bg-gradient-to-br from-primary-400 to-secondary-400 bg-clip-text">💬</div>
 
@@ -575,8 +575,8 @@ const CTASection = () => {
               onClick={() => navigate('/signup')}
               className="group w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-10 py-4 text-lg font-bold text-white rounded-full transition-all duration-300 hover:scale-105 active:scale-95 animate-glow"
               style={{
-                background: 'linear-gradient(135deg, #14b8a6, #10b981)',
-                boxShadow: '0 12px 32px -10px rgba(20, 184, 166, 0.6)',
+                background: 'linear-gradient(135deg, #6d28d9, #8b5cf6)',
+                boxShadow: '0 12px 32px -10px rgba(124, 58, 237, 0.6)',
               }}
             >
               Create Free Account
@@ -597,16 +597,16 @@ const CTASection = () => {
 
 // ==================== FOOTER ====================
 const Footer = () => (
-  <footer className="relative py-8 border-t border-teal-500/10">
+  <footer className="relative py-8 border-t border-primary-500/10">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
         {/* Logo */}
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-xl overflow-hidden">
-            <img src="/echo-logo.svg" alt="Echo" className="w-full h-full" />
+            <img src="/mahaa-logo.svg" alt="Mahaa Verse" className="w-full h-full" />
           </div>
           <span className="text-lg font-extrabold text-gray-900 dark:text-white">
-            Ech<span className="gradient-text">o</span>
+            Mahaa <span className="gradient-text">Verse</span>
           </span>
         </div>
 
@@ -618,7 +618,7 @@ const Footer = () => (
 
         {/* Copyright */}
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          © {new Date().getFullYear()} Echo. All rights reserved.
+          © {new Date().getFullYear()} Mahaa Verse. All rights reserved.
         </p>
       </div>
     </div>

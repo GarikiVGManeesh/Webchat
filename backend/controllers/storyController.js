@@ -14,7 +14,7 @@ exports.createStory = async (req, res, next) => {
       user: req.user._id,
       storyType: storyType || 'text',
       content: content || '',
-      backgroundColor: backgroundColor || '#6C63FF',
+      backgroundColor: backgroundColor || '#7C3AED',
     };
 
     // If file uploaded (image/video)

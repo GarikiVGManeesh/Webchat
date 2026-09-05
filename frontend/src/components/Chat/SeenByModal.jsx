@@ -42,7 +42,7 @@ const SeenByModal = ({ isOpen, onClose, readBy = [], messageTime }) => {
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-teal-500/10 dark:hover:bg-white/5 transition-colors"
+            className="p-2 rounded-lg hover:bg-primary-500/10 dark:hover:bg-white/5 transition-colors"
           >
             <FiX className="w-5 h-5 text-gray-500 dark:text-gray-400" />
           </button>
@@ -65,7 +65,7 @@ const SeenByModal = ({ isOpen, onClose, readBy = [], messageTime }) => {
                 return (
                   <div
                     key={reader._id || index}
-                    className="flex items-center gap-3 px-5 py-3 hover:bg-teal-500/10 dark:hover:bg-white/5 transition-colors"
+                    className="flex items-center gap-3 px-5 py-3 hover:bg-primary-500/10 dark:hover:bg-white/5 transition-colors"
                   >
                     {/* Avatar */}
                     <div className="flex-shrink-0">

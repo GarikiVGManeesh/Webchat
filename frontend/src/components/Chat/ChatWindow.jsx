@@ -55,191 +55,94 @@ const getVanishLabel = (mode) => {
   }
 };
 
-// ==================== FORGOT PRIVACY PIN (account-verified recovery) ====================
+// ==================== FORGOT PRIVACY PIN (email reset link) ====================
+const maskEmail = (email) => {
+  if (!email || !email.includes('@')) return '';
+  const [userPart, domain] = email.split('@');
+  if (userPart.length <= 2) {
+    return `${userPart[0]}${'*'.repeat(Math.max(1, userPart.length - 1))}@${domain}`;
+  }
+  return `${userPart[0]}${'*'.repeat(userPart.length - 2)}${userPart[userPart.length - 1]}@${domain}`;
+};
+
 const ForgotPinModal = ({ onClose }) => {
   const { user } = useAuth();
-  const [step, setStep] = useState('send'); // send | verify | create | success
-  const [code, setCode] = useState('');
-  const [pin, setPinValue] = useState('');
-  const [confirm, setConfirm] = useState('');
+  const [step, setStep] = useState('request'); // request | sent
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [resendIn, setResendIn] = useState(0);
+  const [sentTo, setSentTo] = useState('');
+  const [devLink, setDevLink] = useState('');
 
-  useEffect(() => {
-    if (resendIn <= 0) return;
-    const t = setInterval(() => setResendIn((s) => s - 1), 1000);
-    return () => clearInterval(t);
-  }, [resendIn]);
+  const masked = sentTo || maskEmail(user?.email);
 
   const handleSend = async () => {
     setBusy(true);
     setError('');
     try {
-      const res = await authAPI.sendPinResetOTP();
-      if (res?.data?.otp) setCode(res.data.otp); // dev helper: pre-fill the code
-      setStep('verify');
-      setResendIn(30);
+      // Backend sends the link to the account's registered signup email —
+      // no address is taken from the client.
+      const res = await authAPI.requestPinReset();
+      setSentTo(res?.data?.maskedEmail || masked);
+      if (res?.data?.resetLink) setDevLink(res.data.resetLink); // dev-only fallback
+      setStep('sent');
     } catch (err) {
-      setError(err.message || 'Unable to send the verification code. Please try again.');
+      setError(err.message || 'Unable to send the reset link. Please try again.');
     } finally {
       setBusy(false);
     }
   };
-
-  const handleVerify = async (e) => {
-    e.preventDefault();
-    if (!code) {
-      setError('Enter the verification code.');
-      return;
-    }
-    setBusy(true);
-    setError('');
-    try {
-      await authAPI.verifyPinResetOTP({ otp: code });
-      setStep('create');
-    } catch (err) {
-      setError(err.message || 'Invalid verification code.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleCreate = async (e) => {
-    e.preventDefault();
-    if (!/^\d{4,8}$/.test(pin)) {
-      setError('PIN must be 4–8 digits.');
-      return;
-    }
-    if (pin !== confirm) {
-      setError('PINs do not match.');
-      return;
-    }
-    setBusy(true);
-    setError('');
-    try {
-      await setPin(pin); // hashed + salted on this device
-      recordPinAttempt(true); // clear any temporary lockout
-      setStep('success');
-    } catch (err) {
-      setError(err.message || 'Unable to reset your Privacy PIN.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const closeBtn = (
-    <button
-      type="button"
-      onClick={onClose}
-      className="w-full text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors mt-3"
-    >
-      Cancel
-    </button>
-  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-modal-overlay" onClick={onClose} />
-      <div className="relative glass rounded-[2rem] p-7 w-full max-w-sm animate-modal-in shadow-2xl max-h-[90vh] overflow-y-auto">
-        {step === 'send' && (
-          <div className="text-center">
+      <div className="relative glass rounded-[2rem] p-7 w-full max-w-sm animate-modal-in shadow-2xl max-h-[90vh] overflow-y-auto text-center">
+        {step === 'request' && (
+          <div>
             <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-primary-600 to-primary-700 text-white flex items-center justify-center mb-5 shadow-lg shadow-primary-500/25 ring-1 ring-secondary-300/40">
               <FiMail className="w-6 h-6" />
             </div>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Forgot your Privacy PIN?</h3>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Reset Privacy PIN</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-              Verify your account to reset your Privacy PIN and regain access to your locked conversations.
+              We&apos;ll send a secure reset link to your registered email address.
             </p>
+            {masked ? (
+              <p className="text-sm font-semibold text-primary-600 dark:text-primary-300 bg-primary-500/5 rounded-full py-1.5 px-4 inline-block mb-6">
+                {masked}
+              </p>
+            ) : (
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Your registered email</p>
+            )}
             {error && <p className="text-xs text-red-500 mb-4">{error}</p>}
             <button onClick={handleSend} disabled={busy} className="btn-primary w-full text-sm inline-flex items-center justify-center gap-2">
-              {busy ? 'Sending...' : 'Send Verification Code'}
-            </button>
-            {closeBtn}
-          </div>
-        )}
-
-        {step === 'verify' && (
-          <form onSubmit={handleVerify} className="text-center">
-            <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-primary-600 to-primary-700 text-white flex items-center justify-center mb-5 shadow-lg shadow-primary-500/25 ring-1 ring-secondary-300/40">
-              <FiLock className="w-6 h-6" />
-            </div>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Enter Verification Code</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-              We sent a code to your registered email{user?.mobile ? ' and phone' : ''}.
-            </p>
-            <input
-              type="text"
-              inputMode="numeric"
-              maxLength={6}
-              placeholder="_ _ _ _ _ _"
-              value={code}
-              onChange={(e) => { setCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setError(''); }}
-              autoFocus
-              className="input-field text-center text-lg tracking-[0.5em] py-3 mb-2"
-            />
-            {error && <p className="text-xs text-red-500 mb-4">{error}</p>}
-            <button type="submit" disabled={busy} className="btn-primary w-full text-sm">
-              {busy ? 'Verifying...' : 'Verify'}
+              {busy ? 'Sending...' : 'Send Reset Link'}
             </button>
             <button
               type="button"
-              onClick={handleSend}
-              disabled={busy || resendIn > 0}
-              className="w-full text-xs font-medium text-secondary-600 dark:text-secondary-300 hover:underline transition-colors mt-4 disabled:opacity-50"
+              onClick={onClose}
+              className="w-full text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors mt-3"
             >
-              {resendIn > 0 ? `Didn't receive the code? Resend Code (${resendIn}s)` : "Didn't receive the code? Resend Code"}
+              Cancel
             </button>
-            {closeBtn}
-          </form>
+          </div>
         )}
 
-        {step === 'create' && (
-          <form onSubmit={handleCreate} className="text-center">
-            <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-primary-600 to-primary-700 text-white flex items-center justify-center mb-5 shadow-lg shadow-primary-500/25 ring-1 ring-secondary-300/40">
-              <FiLock className="w-6 h-6" />
-            </div>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Create New Privacy PIN</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-              Your new PIN replaces the old one. The old PIN can never be recovered.
-            </p>
-            <input
-              type="password"
-              inputMode="numeric"
-              maxLength={8}
-              placeholder="Enter New PIN (4–8 digits)"
-              value={pin}
-              onChange={(e) => { setPinValue(e.target.value.replace(/\D/g, '')); setError(''); }}
-              autoFocus
-              className="input-field text-center text-lg tracking-[0.4em] py-3 mb-3"
-            />
-            <input
-              type="password"
-              inputMode="numeric"
-              maxLength={8}
-              placeholder="Confirm New Privacy PIN"
-              value={confirm}
-              onChange={(e) => { setConfirm(e.target.value.replace(/\D/g, '')); setError(''); }}
-              className="input-field text-center text-lg tracking-[0.4em] py-3 mb-2"
-            />
-            {error && <p className="text-xs text-red-500 mb-4">{error}</p>}
-            <button type="submit" disabled={busy} className="btn-primary w-full text-sm">
-              {busy ? 'Resetting...' : 'Reset Privacy PIN'}
-            </button>
-            {closeBtn}
-          </form>
-        )}
-
-        {step === 'success' && (
-          <div className="text-center">
+        {step === 'sent' && (
+          <div>
             <div className="w-14 h-14 mx-auto rounded-full bg-green-500/15 text-green-500 flex items-center justify-center mb-5">
               <FiCheckCircle className="w-7 h-7" />
             </div>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Privacy PIN reset successfully.</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-              You can now unlock your locked conversations with your new PIN.
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Reset link sent</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              Check your inbox{sentTo ? ` at ${sentTo}` : ''} and click the link to create a new Privacy PIN. The link expires in 15 minutes.
             </p>
-            <button onClick={onClose} className="btn-primary w-full text-sm">Continue to Private Chats</button>
+            {devLink && (
+              <div className="text-left bg-primary-500/10 border border-primary-400/30 rounded-xl p-3 mb-4">
+                <p className="text-xs font-semibold text-primary-600 dark:text-primary-300 mb-1">Development mode</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Email delivery isn&apos;t configured, so your reset link was printed to the server console. Use it here:</p>
+                <a href={devLink} className="text-xs font-medium text-secondary-600 dark:text-secondary-300 break-all hover:underline">{devLink}</a>
+              </div>
+            )}
+            <button onClick={onClose} className="btn-primary w-full text-sm">Close</button>
           </div>
         )}
       </div>

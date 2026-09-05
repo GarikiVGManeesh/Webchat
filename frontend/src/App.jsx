@@ -13,6 +13,7 @@ import Signup from './components/Auth/Signup';
 import ForgotPassword from './components/Auth/ForgotPassword';
 import ResetPassword from './components/Auth/ResetPassword';
 import EmailVerification from './pages/EmailVerification';
+import ResetPrivacyPinPage from './pages/ResetPrivacyPinPage';
 import HomePage from './pages/HomePage';
 import ChatPage from './pages/ChatPage';
 import ProfilePage from './pages/ProfilePage';
@@ -33,6 +34,7 @@ const App = () => {
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password/:token" element={<ResetPassword />} />
+                <Route path="/reset-privacy-pin" element={<ResetPrivacyPinPage />} />
                 <Route path="/verify-email/:token" element={<EmailVerification />} />
 
                 {/* Protected Routes */}

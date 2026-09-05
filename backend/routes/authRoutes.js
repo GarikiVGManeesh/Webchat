@@ -6,8 +6,6 @@ const {
   login,
   sendOTP,
   verifyOTP,
-  sendPrivacyPinOTP,
-  verifyPrivacyPinOTP,
   verifyEmail,
   resendVerification,
   forgotPassword,
@@ -17,6 +15,11 @@ const {
   logout,
   logoutAllDevices,
 } = require('../controllers/authController');
+const {
+  requestPinReset,
+  validatePinResetToken,
+  completePinReset,
+} = require('../controllers/pinResetController');
 const { protect } = require('../middlewares/auth');
 
 // Validation rules
@@ -43,9 +46,11 @@ router.post('/resend-verification', resendVerification);
 router.post('/forgot-password', forgotPassword);
 router.put('/reset-password/:token', resetPassword);
 
-// Private routes
-router.post('/send-pin-reset-otp', protect, sendPrivacyPinOTP);
-router.post('/verify-pin-reset-otp', protect, verifyPrivacyPinOTP);
+// Privacy PIN reset (email link flow) — request uses the authenticated user's
+// registered signup email; validate/complete use the emailed single-use token.
+router.post('/pin-reset/request', protect, requestPinReset);
+router.get('/pin-reset/validate', validatePinResetToken);
+router.post('/pin-reset/complete', completePinReset);
 router.get('/me', protect, getMe);
 router.put('/update-password', protect, updatePassword);
 router.get('/logout', protect, logout);

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" fill="none">
+  <!-- Subtle chat pattern - very low opacity geometric shapes -->
+  <rect width="400" height="400" fill="transparent"/>
+  
+  <!-- Tiny dots grid -->
+  <circle cx="20" cy="20" r="1" fill="rgba(108,99,255,0.04)"/>
+  <circle cx="60" cy="20" r="1" fill="rgba(108,99,255,0.04)"/>
+  <circle cx="100" cy="20" r="1" fill="rgba(108,99,255,0.04)"/>
+  <circle cx="140" cy="20" r="1" fill="rgba(108,99,255,0.04)"/>
+  <circle cx="180" cy="20" r="1" fill="rgba(108,99,255,0.04)"/>
+  <circle cx="220" cy="20" r="1" fill="rgba(108,99,255,0.04)"/>
+  <circle cx="260" cy="20" r="1" fill="rgba(108,99,255,0.04)"/>
+  <circle cx="300" cy="20" r="1" fill="rgba(108,99,255,0.04)"/>
+  <circle cx="340" cy="20" r="1" fill="rgba(108,99,255,0.04)"/>
+  <circle cx="380" cy="20" r="1" fill="rgba(108,99,255,0.04)"/>
+  
+  <!-- Subtle chat bubbles scattered -->
+  <path d="M50 80 Q50 70 60 70 L80 70 Q90 70 90 80 L90 90 Q90 100 80 100 L65 100 L55 108 L57 100 L60 100 Q50 100 50 90 Z" fill="rgba(108,99,255,0.02)" stroke="rgba(108,99,255,0.03)" stroke-width="0.5"/>
+  <path d="M280 150 Q280 140 290 140 L320 140 Q330 140 330 150 L330 165 Q330 175 320 175 L295 175 L285 183 L287 175 L290 175 Q280 175 280 165 Z" fill="rgba(108,99,255,0.02)" stroke="rgba(108,99,255,0.03)" stroke-width="0.5"/>
+  <path d="M150 250 Q150 240 160 240 L190 240 Q200 240 200 250 L200 260 Q200 270 190 270 L165 270 L155 278 L157 270 L160 270 Q150 270 150 260 Z" fill="rgba(108,99,255,0.02)" stroke="rgba(108,99,255,0.03)" stroke-width="0.5"/>
+  <path d="M320 320 Q320 310 330 310 L355 310 Q365 310 365 320 L365 332 Q365 342 355 342 L335 342 L325 350 L327 342 L330 342 Q320 342 320 332 Z" fill="rgba(108,99,255,0.02)" stroke="rgba(108,99,255,0.03)" stroke-width="0.5"/>
+  
+  <!-- Tiny hearts -->
+  <path d="M350 60 C348 58 345 58 344 61 C344 58 341 58 339 60 C339 63 344 67 344 67 C344 67 350 63 350 60 Z" fill="rgba(236,72,153,0.03)"/>
+  <path d="M120 350 C118 348 115 348 114 351 C114 348 111 348 109 350 C109 353 114 357 114 357 C114 357 120 353 120 350 Z" fill="rgba(236,72,153,0.03)"/>
+</svg>

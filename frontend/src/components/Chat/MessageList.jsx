@@ -5,7 +5,7 @@ import MessageBubble from './MessageBubble';
 import { MessageSkeleton } from '../common/LoadingSkeleton';
 import { FiMessageSquare } from 'react-icons/fi';
 
-const MessageList = ({ onEditMessage, onReplyMessage, onDeleteMessage, onForwardMessage, highlightedMessageId }) => {
+const MessageList = ({ onEditMessage, onReplyMessage, onDeleteMessage, onForwardMessage, onStarMessage, onUnstarMessage, highlightedMessageId }) => {
   const { messages, loadingMessages, activeChat, typingUsers, onlineUsers, loadMessages } = useChat();
   const { user } = useAuth();
   const messagesEndRef = useRef(null);
@@ -42,7 +42,8 @@ const MessageList = ({ onEditMessage, onReplyMessage, onDeleteMessage, onForward
     return () => container.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Scroll to highlighted message when search result is selected
+  // Scroll to highlighted message; retries when new messages arrive so a
+  // highlight requested before the batch finished loading still lands.
   useEffect(() => {
     if (!highlightedMessageId || !containerRef.current) return;
 
@@ -56,7 +57,7 @@ const MessageList = ({ onEditMessage, onReplyMessage, onDeleteMessage, onForward
         block: 'center',
       });
     }
-  }, [highlightedMessageId]);
+  }, [highlightedMessageId, messages.length]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -137,6 +138,8 @@ const MessageList = ({ onEditMessage, onReplyMessage, onDeleteMessage, onForward
               onEdit={onEditMessage}
               onReply={onReplyMessage}
               onForward={onForwardMessage}
+              onStarMessage={onStarMessage}
+              onUnstarMessage={onUnstarMessage}
             />
             </div>
           ))}

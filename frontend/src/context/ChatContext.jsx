@@ -43,6 +43,11 @@ export const ChatProvider = ({ children }) => {
   // the conversation again automatically.
   const [unlockedChats, setUnlockedChats] = useState(() => new Set());
 
+  // A message to scroll to after opening a chat (used from Starred Messages).
+  // Stored so it survives the privacy-PIN unlock flow, which defers the
+  // message fetch until after authentication.
+  const [pendingHighlight, setPendingHighlight] = useState(null); // { chatId, messageId }
+
   // Load chats
   const loadChats = useCallback(async () => {
     try {
@@ -72,6 +77,23 @@ export const ChatProvider = ({ children }) => {
       return data.pagination;
     } catch (error) {
       console.error('Failed to load messages:', error);
+    } finally {
+      setLoadingMessages(false);
+    }
+  }, []);
+
+  // Load the page of messages containing a specific message (jump-to-message).
+  const loadMessagesAround = useCallback(async (chatId, messageId) => {
+    if (!chatId || !messageId) return;
+    try {
+      setLoadingMessages(true);
+      const { data } = await messageAPI.getMessages(chatId, {
+        around: messageId,
+        limit: 50,
+      });
+      setMessages(data.messages || []);
+    } catch (error) {
+      console.error('Failed to load messages around target:', error);
     } finally {
       setLoadingMessages(false);
     }
@@ -140,16 +162,54 @@ export const ChatProvider = ({ children }) => {
   }, [loadMessages, joinChat, emitMarkAsRead, relockChat, isChatLocked, unlockedChats]);
 
   // After the privacy PIN check succeeds: unlock for this session and fetch
-  // the conversation's messages + join its realtime room.
-  const unlockAndEnter = useCallback(async (chatId) => {
-    unlockChat(chatId);
-    joinChat(chatId);
-    await loadMessages(chatId);
-    emitMarkAsRead(chatId);
-    setChats((prev) =>
-      prev.map((c) => (c._id === chatId ? { ...c, unreadCount: 0 } : c))
-    );
-  }, [unlockChat, joinChat, loadMessages, emitMarkAsRead]);
+  // the conversation's messages + join its realtime room. When `messageId` is
+  // given (jump-to-message), load the page containing that message instead so
+  // it can be highlighted.
+  const unlockAndEnter = useCallback(
+    async (chatId, messageId) => {
+      unlockChat(chatId);
+      joinChat(chatId);
+      if (messageId) {
+        await loadMessagesAround(chatId, messageId);
+      } else {
+        await loadMessages(chatId);
+      }
+      emitMarkAsRead(chatId);
+      setChats((prev) =>
+        prev.map((c) => (c._id === chatId ? { ...c, unreadCount: 0 } : c))
+      );
+    },
+    [unlockChat, joinChat, loadMessages, loadMessagesAround, emitMarkAsRead]
+  );
+
+  // Open a chat at a specific message (from Starred Messages / search). Fetches
+  // the chat by id (it may not be in the sidebar list), selects it, then loads
+  // the page around the target message. Locked conversations defer the message
+  // load until the privacy PIN unlock.
+  const jumpToMessage = useCallback(
+    async (chatId, messageId) => {
+      try {
+        const { data } = await chatAPI.getChatById(chatId);
+        const chat = data.chat;
+        setChats((prev) =>
+          prev.some((c) => c._id === chat._id) ? prev : [chat, ...prev]
+        );
+        await selectChat(chat);
+        setPendingHighlight({ chatId, messageId });
+        // Locked conversations load their messages only after the PIN unlock.
+        if (!isChatLocked(chat) || unlockedChats.has(chatId)) {
+          await loadMessagesAround(chatId, messageId);
+        }
+        return chat;
+      } catch (error) {
+        console.error('Failed to jump to message:', error);
+        throw error;
+      }
+    },
+    [selectChat, isChatLocked, unlockedChats, loadMessagesAround]
+  );
+
+  const clearPendingHighlight = useCallback(() => setPendingHighlight(null), []);
 
   // Create a new chat
   const createChat = useCallback(async (userId) => {
@@ -408,8 +468,12 @@ export const ChatProvider = ({ children }) => {
     unlockChat,
     relockChat,
     unlockAndEnter,
+    pendingHighlight,
+    clearPendingHighlight,
+    jumpToMessage,
     loadChats,
     loadMessages,
+    loadMessagesAround,
     selectChat,
     createChat,
     sendMessage,

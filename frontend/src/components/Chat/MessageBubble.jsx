@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
 import { formatMessageTime, getFileIconColor, formatFileSize, getFileNameFromUrl } from '../../utils/helpers';
-import { FiCheck, FiDownload, FiFile, FiTrash2, FiEdit2, FiCornerUpLeft, FiMoreVertical, FiShare2, FiMapPin, FiClock, FiPlus } from 'react-icons/fi';
+import { FiCheck, FiDownload, FiFile, FiTrash2, FiEdit2, FiCornerUpLeft, FiMoreVertical, FiShare2, FiMapPin, FiClock, FiPlus, FiStar } from 'react-icons/fi';
 
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
 
@@ -13,7 +13,9 @@ const EXTENDED_EMOJIS = [
   '💀', '🫡', '🤝', '❤️‍🔥', '🥹', '😤', '🫠', '💕', '🙄', '😈',
 ];
 
-const MessageBubble = ({ message, isSent, sender, onDelete, onEdit, onReply, onForward, showAvatar = true }) => {
+const MessageBubble = ({ message, isSent, sender, onDelete, onEdit, onReply, onForward, onStarMessage, onUnstarMessage, showAvatar = true }) => {
+  // A message is starred when the backend flags it (message.starred).
+  const isStarred = !!message.starred;
   const [showActions, setShowActions] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
   const [showFullPicker, setShowFullPicker] = useState(false);
@@ -89,6 +91,15 @@ const MessageBubble = ({ message, isSent, sender, onDelete, onEdit, onReply, onF
 
   const handleForward = () => {
     if (onForward) onForward(message);
+    setShowActions(false);
+  };
+
+  const handleStarToggle = () => {
+    if (isStarred) {
+      if (onUnstarMessage) onUnstarMessage(message);
+    } else if (onStarMessage) {
+      onStarMessage(message);
+    }
     setShowActions(false);
   };
 
@@ -432,6 +443,15 @@ const MessageBubble = ({ message, isSent, sender, onDelete, onEdit, onReply, onF
             <button onClick={() => { setShowReactions(!showReactions); setShowActions(false); }} className="p-2 text-gray-600 dark:text-gray-300 hover:bg-primary-500/10 dark:hover:bg-white/5 rounded-l-lg" title="React">
               😊
             </button>
+            <button
+              onClick={handleStarToggle}
+              className={`p-2 hover:bg-primary-500/10 dark:hover:bg-white/5 ${
+                isStarred ? 'text-amber-500' : 'text-gray-600 dark:text-gray-300'
+              }`}
+              title={isStarred ? 'Unstar Message' : 'Star Message'}
+            >
+              <FiStar className={`w-4 h-4 ${isStarred ? 'fill-amber-400 text-amber-400' : ''}`} />
+            </button>
             {isSent && !message.editedAt && message.messageType === 'text' && (
               <button onClick={handleEdit} className="p-2 text-gray-600 dark:text-gray-300 hover:bg-primary-500/10 dark:hover:bg-white/5" title="Edit">
                 <FiEdit2 className="w-4 h-4" />
@@ -454,6 +474,14 @@ const MessageBubble = ({ message, isSent, sender, onDelete, onEdit, onReply, onF
         {/* Timestamp, Status & Vanish Indicator */}
         <div className={`flex items-center gap-1 mt-0.5 ${isSent ? 'justify-end' : 'justify-start'} px-1`}>
           {isSent && statusIcon()}
+
+          {/* Starred indicator */}
+          {isStarred && (
+            <FiStar
+              className="w-3 h-3 text-amber-400 fill-amber-400"
+              title="Starred message"
+            />
+          )}
 
           {/* Vanish/Disappearing message indicator */}
           {message.expiresAt && (

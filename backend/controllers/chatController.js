@@ -1,6 +1,7 @@
 const Chat = require('../models/Chat');
 const Message = require('../models/Message');
 const User = require('../models/User');
+const StarredMessage = require('../models/StarredMessage');
 
 /**
  * @desc    Get all chats for current user
@@ -298,6 +299,7 @@ exports.leaveGroup = async (req, res, next) => {
     // If no participants left, delete the group
     if (chat.participants.length === 0) {
       await Message.deleteMany({ chat: chat._id });
+      await StarredMessage.deleteMany({ chat: chat._id });
       await chat.deleteOne();
       return res.status(200).json({ success: true, message: 'Group deleted (no members left).' });
     }
@@ -527,6 +529,9 @@ exports.clearChat = async (req, res, next) => {
 
     // Removes the whole message history for this conversation.
     await Message.deleteMany({ chat: chat._id });
+    // No messages left to star — drop the saved references so the Starred
+    // Messages list never holds broken links.
+    await StarredMessage.deleteMany({ chat: chat._id });
 
     chat.lastMessage = undefined;
     await chat.save();

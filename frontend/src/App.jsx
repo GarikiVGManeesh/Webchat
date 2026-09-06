@@ -17,6 +17,7 @@ import ResetPrivacyPinPage from './pages/ResetPrivacyPinPage';
 import HomePage from './pages/HomePage';
 import ChatPage from './pages/ChatPage';
 import StoriesPage from './pages/StoriesPage';
+import StarredMessagesPage from './pages/StarredMessagesPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
 
@@ -47,6 +48,11 @@ const App = () => {
                 <Route path="/stories" element={
                   <ProtectedRoute>
                     <StoriesPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/starred" element={
+                  <ProtectedRoute>
+                    <StarredMessagesPage />
                   </ProtectedRoute>
                 } />
                 <Route path="/profile" element={

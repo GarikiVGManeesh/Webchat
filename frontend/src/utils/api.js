@@ -43,11 +43,22 @@ api.interceptors.response.use(
         }
       }
 
-      // Return structured error
+      // Return structured error.
+      // A dead/unreachable backend typically surfaces as a 5xx (often from
+      // the dev proxy) with a non-JSON body — report that as a server
+      // problem instead of a generic app failure, while real backend
+      // messages (e.g. "Invalid email or password.") pass through verbatim.
+      const resData = error.response.data;
+      const serverMessage =
+        resData && typeof resData === 'object' ? resData.message : undefined;
       return Promise.reject({
         status: error.response.status,
-        message: error.response.data?.message || 'Something went wrong',
-        errors: error.response.data?.errors || [],
+        message:
+          serverMessage ||
+          (error.response.status >= 500
+            ? 'Server error. Please try again in a moment.'
+            : 'Something went wrong'),
+        errors: (resData && resData.errors) || [],
       });
     } else if (error.request) {
       return Promise.reject({
@@ -139,6 +150,9 @@ export const messageAPI = {
   deleteMessage: (id) => api.delete(`/messages/${id}`),
   markAsRead: (chatId) => api.put(`/messages/read/${chatId}`),
   searchMessages: (params) => api.get('/messages/search', { params }),
+  starMessage: (id) => api.put(`/messages/${id}/star`),
+  unstarMessage: (id) => api.delete(`/messages/${id}/star`),
+  getStarredMessages: () => api.get('/messages/starred'),
 };
 
 // ======== STORY API ========

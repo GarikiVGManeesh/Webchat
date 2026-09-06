@@ -136,10 +136,12 @@ const startServer = async () => {
 startServer();
 
 // ======== UNHANDLED PROMISE REJECTIONS ========
+// A rejected promise (e.g. a socket write to a client that dropped off with
+// ECONNRESET) must NOT take the whole API down. Crashing here turned a single
+// dropped TCP connection into a dead server, which the frontend then saw as a
+// generic failure on every request — including login. Log it and keep serving.
 process.on('unhandledRejection', (err) => {
-  console.error('Unhandled Promise Rejection:', err.message);
-  // Close server gracefully
-  server.close(() => process.exit(1));
+  console.error('Unhandled Promise Rejection:', err && err.message ? err.message : err);
 });
 
 process.on('uncaughtException', (err) => {

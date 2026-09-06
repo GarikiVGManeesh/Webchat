@@ -33,7 +33,7 @@ import {
   FiMail,
   FiCheckCircle,
 } from 'react-icons/fi';
-import { chatAPI, authAPI } from '../../utils/api';
+import { chatAPI, authAPI, messageAPI } from '../../utils/api';
 import {
   hasPin,
   setPin,
@@ -436,6 +436,9 @@ const ChatWindow = () => {
     isChatUnlocked,
     unlockChat,
     relockChat,
+    unlockAndEnter,
+    pendingHighlight,
+    clearPendingHighlight,
   } = useChat();
   const { sidebarOpen, setSidebarOpen } = useTheme();
   const {
@@ -553,6 +556,36 @@ const ChatWindow = () => {
       }
     });
   };
+
+  // Star / unstar the tapped message with an optimistic update.
+  const handleStarMessage = async (message) => {
+    const willStar = !message.starred;
+    setMessages((prev) =>
+      prev.map((m) =>
+        m._id === message._id ? { ...m, starred: willStar } : m
+      )
+    );
+    try {
+      if (willStar) await messageAPI.starMessage(message._id);
+      else await messageAPI.unstarMessage(message._id);
+      toast.success(willStar ? 'Message starred ⭐' : 'Message unstarred');
+    } catch (err) {
+      // Roll back on failure
+      setMessages((prev) =>
+        prev.map((m) =>
+          m._id === message._id ? { ...m, starred: !willStar } : m
+        )
+      );
+      toast.error(err.message || 'Failed to update star.');
+    }
+  };
+
+  // Clear a jump-to-message highlight shortly after it has been shown.
+  useEffect(() => {
+    if (!pendingHighlight) return;
+    const timer = setTimeout(() => clearPendingHighlight(), 3000);
+    return () => clearTimeout(timer);
+  }, [pendingHighlight, clearPendingHighlight]);
 
   const handleBack = () => {
     // Leaving a locked conversation re-locks it immediately.
@@ -1010,7 +1043,15 @@ const ChatWindow = () => {
       {isPrivate ? (
         <PrivacyLockScreen
           biometricAvailable={biometricAvailable}
-          onUnlocked={() => unlockChat(activeChat._id)}
+          onUnlocked={() => {
+            // Enter with the jump target (if any) so the starred message loads
+            // and gets highlighted right after the PIN unlock.
+            const jumpId =
+              pendingHighlight?.chatId === activeChat?._id
+                ? pendingHighlight.messageId
+                : null;
+            unlockAndEnter(activeChat._id, jumpId);
+          }}
           onCancel={handleBack}
         />
       ) : (
@@ -1021,7 +1062,14 @@ const ChatWindow = () => {
             onReplyMessage={handleReplyMessage}
             onDeleteMessage={handleDeleteMessage}
             onForwardMessage={(msg) => setForwardingMessage(msg)}
-            highlightedMessageId={highlightedMessageId}
+            onStarMessage={handleStarMessage}
+            onUnstarMessage={handleStarMessage}
+            highlightedMessageId={
+              highlightedMessageId ||
+              (pendingHighlight?.chatId === activeChat?._id
+                ? pendingHighlight.messageId
+                : null)
+            }
           />
 
           {/* Input */}

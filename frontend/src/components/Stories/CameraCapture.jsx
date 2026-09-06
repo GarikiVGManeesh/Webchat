@@ -1,20 +1,30 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { FiX, FiRefreshCw, FiImage } from 'react-icons/fi';
+import { FiX, FiRefreshCw, FiImage, FiVideo, FiSquare } from 'react-icons/fi';
 
 /**
- * CameraCapture — full live-camera interface for taking a story photo.
+ * CameraCapture — full live-camera interface for taking a story photo
+ * or recording a story video.
  *
  * Props:
- *  - onCaptured(file, previewUrl): called after the user taps capture
+ *  - onCaptured(file, previewUrl, kind): called after capture ("image" | "video")
  *  - onCancel(): close the whole composer
  *  - onUseGallery(): jump to the gallery upload flow
  */
 const CameraCapture = ({ onCaptured, onCancel, onUseGallery }) => {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
+  const recorderRef = useRef(null);
+  const chunksRef = useRef([]);
+  const timerRef = useRef(null);
+
   const [facing, setFacing] = useState('user');
   const [status, setStatus] = useState('starting'); // starting | live | denied | error
   const [errorMsg, setErrorMsg] = useState('');
+  const [mode, setMode] = useState('photo'); // photo | video
+  const [recording, setRecording] = useState(false);
+  const [recordSeconds, setRecordSeconds] = useState(0);
+
+  const MAX_VIDEO_SECONDS = 60; // mirrors the 60MB story upload cap
 
   const stopStream = useCallback(() => {
     if (streamRef.current) {
@@ -26,7 +36,7 @@ const CameraCapture = ({ onCaptured, onCancel, onUseGallery }) => {
     }
   }, []);
 
-  const startCamera = useCallback(async (mode) => {
+  const startCamera = useCallback(async (camMode) => {
     // Not available (non-secure context / unsupported browser)
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       setStatus('error');
@@ -38,24 +48,45 @@ const CameraCapture = ({ onCaptured, onCancel, onUseGallery }) => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: { ideal: mode },
+          facingMode: { ideal: camMode },
           width: { ideal: 1280 },
           height: { ideal: 1280 },
         },
-        audio: false,
+        audio: true, // needed so video stories can carry sound
       });
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        // Keep the preview silent — we only want audio on the recording.
+        videoRef.current.muted = true;
         await videoRef.current.play();
       }
       setStatus('live');
     } catch (err) {
       console.error('Camera error:', err);
+      // Some devices/browsers block audio; retry video-only before giving up.
+      if (err.name !== 'NotAllowedError' && err.name !== 'NotFoundError') {
+        try {
+          const videoOnly = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: camMode } },
+            audio: false,
+          });
+          streamRef.current = videoOnly;
+          if (videoRef.current) {
+            videoRef.current.srcObject = videoOnly;
+            videoRef.current.muted = true;
+            await videoRef.current.play();
+          }
+          setStatus('live');
+          return;
+        } catch {
+          /* fall through to the error handling below */
+        }
+      }
       // Permission denied / dismissed
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
         setStatus('denied');
-        setErrorMsg('Camera access is required to take a photo.');
+        setErrorMsg('Camera access is required to capture a story.');
       } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
         setStatus('error');
         setErrorMsg('No camera was found on this device.');
@@ -71,11 +102,19 @@ const CameraCapture = ({ onCaptured, onCancel, onUseGallery }) => {
 
   useEffect(() => {
     startCamera('user');
-    return () => stopStream();
+    return () => {
+      stopStream();
+      if (timerRef.current) clearInterval(timerRef.current);
+      // If the component unmounts mid-recording, discard the recorder cleanly.
+      if (recorderRef.current && recorderRef.current.state !== 'inactive') {
+        try { recorderRef.current.stop(); } catch { /* already stopped */ }
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const switchCamera = async () => {
+    if (recording) return; // don't switch mid-recording
     const next = facing === 'user' ? 'environment' : 'user';
     stopStream();
     await startCamera(next);
@@ -84,7 +123,8 @@ const CameraCapture = ({ onCaptured, onCancel, onUseGallery }) => {
     setFacing(next);
   };
 
-  const handleCapture = async () => {
+  // ==================== PHOTO CAPTURE ====================
+  const handleCapturePhoto = async () => {
     const video = videoRef.current;
     if (!video || video.readyState < 2) return;
 
@@ -108,8 +148,96 @@ const CameraCapture = ({ onCaptured, onCancel, onUseGallery }) => {
     });
 
     stopStream();
-    onCaptured(file, URL.createObjectURL(file) || dataUrl);
+    onCaptured(file, URL.createObjectURL(file) || dataUrl, 'image');
   };
+
+  // ==================== VIDEO RECORDING ====================
+  const pickVideoMime = () => {
+    const candidates = ['video/mp4', 'video/webm;codecs=vp9', 'video/webm'];
+    if (typeof MediaRecorder === 'undefined') return '';
+    return candidates.find((t) => MediaRecorder.isTypeSupported(t)) || '';
+  };
+
+  const stopRecording = useCallback(() => {
+    if (recorderRef.current && recorderRef.current.state !== 'inactive') {
+      recorderRef.current.stop();
+    }
+  }, []);
+
+  const startRecording = () => {
+    const stream = streamRef.current;
+    if (!stream || recording) return;
+    if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported) {
+      setStatus('error');
+      setErrorMsg('Video recording is not supported on this browser. You can still take photos or use the gallery.');
+      return;
+    }
+
+    const mimeType = pickVideoMime();
+    let recorder;
+    try {
+      recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+    } catch {
+      setStatus('error');
+      setErrorMsg('Video recording failed to start. Please try again.');
+      return;
+    }
+
+    recorderRef.current = recorder;
+    chunksRef.current = [];
+
+    recorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
+    };
+
+    recorder.onstop = () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      const type = recorder.mimeType || mimeType || 'video/webm';
+      const ext = type.includes('mp4') ? 'mp4' : 'webm';
+      const blob = new Blob(chunksRef.current, { type });
+      chunksRef.current = [];
+      setRecording(false);
+      setRecordSeconds(0);
+
+      if (!blob.size) {
+        setStatus('error');
+        setErrorMsg('The recording came back empty. Please try again.');
+        return;
+      }
+
+      const file = new File([blob], `story-${Date.now()}.${ext}`, { type });
+      stopStream();
+      onCaptured(file, URL.createObjectURL(file), 'video');
+    };
+
+    recorder.start(250); // gather data every 250ms for a clean final blob
+
+    setRecording(true);
+    setRecordSeconds(0);
+    timerRef.current = setInterval(() => {
+      setRecordSeconds((s) => {
+        const next = s + 1;
+        if (next >= MAX_VIDEO_SECONDS) stopRecording(); // hard cap at 60s
+        return next;
+      });
+    }, 1000);
+  };
+
+  const handleShutter = () => {
+    if (recording) {
+      stopRecording();
+    } else if (mode === 'video') {
+      startRecording();
+    } else {
+      handleCapturePhoto();
+    }
+  };
+
+  const formatSeconds = (s) =>
+    `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
   return (
     <div className="fixed inset-0 z-[60] flex flex-col bg-gradient-to-b from-dark-950 via-[#2a1655] to-dark-950 text-white">
@@ -126,9 +254,10 @@ const CameraCapture = ({ onCaptured, onCancel, onUseGallery }) => {
         {status === 'live' ? (
           <button
             onClick={switchCamera}
-            className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur transition-all active:scale-95"
+            className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur transition-all active:scale-95 disabled:opacity-40"
             aria-label="Switch camera"
             title="Switch camera"
+            disabled={recording}
           >
             <FiRefreshCw className="w-5 h-5" />
           </button>
@@ -157,6 +286,15 @@ const CameraCapture = ({ onCaptured, onCancel, onUseGallery }) => {
             />
             {/* Corner accents */}
             <div className="absolute inset-3 rounded-2xl pointer-events-none border border-white/10" />
+
+            {/* Recording indicator + timer */}
+            {recording && (
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/50 backdrop-blur">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
+                <span className="text-xs font-semibold tabular-nums">{formatSeconds(recordSeconds)}</span>
+                <span className="text-[10px] text-white/60">max 0:60</span>
+              </div>
+            )}
           </div>
         )}
 
@@ -165,9 +303,9 @@ const CameraCapture = ({ onCaptured, onCancel, onUseGallery }) => {
             <div className="w-16 h-16 mx-auto rounded-2xl bg-red-500/15 text-red-400 flex items-center justify-center mb-4">
               <FiX className="w-7 h-7" />
             </div>
-            <p className="text-base font-semibold mb-2">Camera access is required to take a photo.</p>
+            <p className="text-base font-semibold mb-2">Camera access is required to capture a story.</p>
             <p className="text-sm text-white/60 mb-6">
-              Allow camera access in your browser settings, or upload a photo from your gallery instead.
+              Allow camera access in your browser settings, or upload a photo or video from your gallery instead.
             </p>
             <button
               onClick={onUseGallery}
@@ -195,18 +333,61 @@ const CameraCapture = ({ onCaptured, onCancel, onUseGallery }) => {
         )}
       </div>
 
+      {/* Mode switch (photo / video) */}
+      {status === 'live' && (
+        <div className="flex items-center justify-center gap-2 pb-1">
+          <div className="flex items-center gap-1 p-1 rounded-full bg-white/10 backdrop-blur">
+            <button
+              onClick={() => setMode('photo')}
+              disabled={recording}
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                mode === 'photo' ? 'bg-white text-gray-900' : 'text-white/70 hover:text-white'
+              } disabled:opacity-40`}
+            >
+              <FiImage className="w-3.5 h-3.5" /> Photo
+            </button>
+            <button
+              onClick={() => setMode('video')}
+              disabled={recording}
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                mode === 'video' ? 'bg-white text-gray-900' : 'text-white/70 hover:text-white'
+              } disabled:opacity-40`}
+            >
+              <FiVideo className="w-3.5 h-3.5" /> Video
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Capture controls */}
-      <div className="flex items-center justify-center py-8">
+      <div className="flex items-center justify-center py-6">
         {status === 'live' ? (
           <button
-            onClick={handleCapture}
-            aria-label="Capture photo"
+            onClick={handleShutter}
+            aria-label={recording ? 'Stop recording' : mode === 'video' ? 'Start recording' : 'Capture photo'}
             className="group relative flex items-center justify-center"
           >
-            <span className="absolute w-[72px] h-[72px] rounded-full bg-secondary-400/20 blur-md group-hover:bg-secondary-400/40 transition-all" />
-            <span className="relative w-16 h-16 rounded-full border-4 border-white/90 flex items-center justify-center group-active:scale-90 transition-transform">
-              <span className="w-12 h-12 rounded-full bg-gradient-to-br from-secondary-300 to-secondary-500 group-active:scale-75 transition-transform shadow-lg shadow-secondary-500/40" />
-            </span>
+            <span className={`absolute w-[72px] h-[72px] rounded-full blur-md transition-all ${
+              recording
+                ? 'bg-red-500/30'
+                : mode === 'video'
+                  ? 'bg-red-400/15 group-hover:bg-red-400/30'
+                  : 'bg-secondary-400/20 group-hover:bg-secondary-400/40'
+            }`} />
+            {recording ? (
+              // Stop button while recording
+              <span className="relative w-16 h-16 rounded-full border-4 border-red-400/90 flex items-center justify-center active:scale-90 transition-transform">
+                <FiSquare className="w-6 h-6 text-white fill-white" />
+              </span>
+            ) : (
+              <span className="relative w-16 h-16 rounded-full border-4 border-white/90 flex items-center justify-center group-active:scale-90 transition-transform">
+                <span className={`w-12 h-12 rounded-full group-active:scale-75 transition-transform shadow-lg ${
+                  mode === 'video'
+                    ? 'rounded-[14px] bg-gradient-to-br from-red-400 to-red-600 shadow-red-500/40'
+                    : 'bg-gradient-to-br from-secondary-300 to-secondary-500 shadow-secondary-500/40'
+                }`} />
+              </span>
+            )}
           </button>
         ) : (
           <div className="h-16" />

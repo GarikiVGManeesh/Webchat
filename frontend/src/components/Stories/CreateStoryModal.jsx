@@ -54,12 +54,12 @@ const CreateStoryModal = ({ onClose, onPosted }) => {
     setMediaPreview('');
   };
 
-  const handleCaptured = (file, previewUrl) => {
+  const handleCaptured = (file, previewUrl, kind = 'image') => {
     if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
     previewUrlRef.current = '';
     setMediaFile(file);
     setMediaPreview(previewUrl);
-    setMediaKind('image');
+    setMediaKind(kind === 'video' ? 'video' : 'image');
     setPhase('cameraReview');
   };
 
@@ -166,7 +166,7 @@ const CreateStoryModal = ({ onClose, onPosted }) => {
               </div>
               <div className="flex-1">
                 <p className="font-semibold">Camera</p>
-                <p className="text-xs text-white/70">Take a photo with your device camera</p>
+                <p className="text-xs text-white/70">Take a photo or record a video with your camera</p>
               </div>
             </button>
 
@@ -242,7 +242,7 @@ const CreateStoryModal = ({ onClose, onPosted }) => {
               disabled={busy}
               className="w-full text-sm font-medium text-gray-300 hover:text-white transition-colors inline-flex items-center justify-center gap-2 disabled:opacity-40"
             >
-              <FiRefreshCw className="w-4 h-4" /> Retake
+              <FiRefreshCw className="w-4 h-4" /> {mediaKind === 'video' ? 'Record Again' : 'Retake'}
             </button>
           </div>
         ) : (

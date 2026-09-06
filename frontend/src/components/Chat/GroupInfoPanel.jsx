@@ -35,6 +35,7 @@ const GroupInfoPanel = ({ chat, onClose, onChatUpdated }) => {
   const [addingMember, setAddingMember] = useState(null);
 
   const [removingMember, setRemovingMember] = useState(null);
+  const [promotingMember, setPromotingMember] = useState(null);
   const [leavingGroup, setLeavingGroup] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
 
@@ -90,8 +91,10 @@ const GroupInfoPanel = ({ chat, onClose, onChatUpdated }) => {
       const formData = new FormData();
       formData.append('name', editName.trim());
       formData.append('description', editDescription.trim());
+      // Field name must match the multer middleware on the server
+      // (groupAvatarUpload.single('groupAvatar')).
       if (editAvatar) {
-        formData.append('avatar', editAvatar);
+        formData.append('groupAvatar', editAvatar);
       }
 
       const { data } = await chatAPI.updateGroup(chat._id, formData);
@@ -132,6 +135,22 @@ const GroupInfoPanel = ({ chat, onClose, onChatUpdated }) => {
       toast.error(error.message || 'Failed to remove member');
     } finally {
       setRemovingMember(null);
+    }
+  };
+
+  const handleToggleAdmin = async (userId, isCurrentlyAdmin) => {
+    setPromotingMember(userId);
+    try {
+      const payload = { userId };
+      const { data } = isCurrentlyAdmin
+        ? await chatAPI.demoteGroupMember(chat._id, payload)
+        : await chatAPI.promoteGroupMember(chat._id, payload);
+      toast.success(isCurrentlyAdmin ? 'Admin demoted' : 'Member promoted to admin');
+      if (onChatUpdated) onChatUpdated(data.chat);
+    } catch (error) {
+      toast.error(error.message || 'Failed to update admin role');
+    } finally {
+      setPromotingMember(null);
     }
   };
 
@@ -441,20 +460,38 @@ const GroupInfoPanel = ({ chat, onClose, onChatUpdated }) => {
                       </p>
                     </div>
 
-                    {/* Remove button (admin only, not self) */}
+                    {/* Admin actions: promote/demote + remove (admin only, not self) */}
                     {isAdmin && !isSelf && (
-                      <button
-                        onClick={() => handleRemoveMember(member._id)}
-                        disabled={removingMember === member._id}
-                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                        title="Remove member"
-                      >
-                        {removingMember === member._id ? (
-                          <span className="w-4 h-4 block border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                          <FiUserMinus className="w-4 h-4" />
-                        )}
-                      </button>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                        <button
+                          onClick={() => handleToggleAdmin(member._id, isMemberAdmin)}
+                          disabled={promotingMember === member._id}
+                          className={`p-1.5 rounded-lg transition-all ${
+                            isMemberAdmin
+                              ? 'text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20'
+                              : 'text-gray-400 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20'
+                          }`}
+                          title={isMemberAdmin ? 'Demote to member' : 'Promote to admin'}
+                        >
+                          {promotingMember === member._id ? (
+                            <span className="w-4 h-4 block border-2 border-current border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <FiShield className={`w-4 h-4 ${isMemberAdmin ? 'fill-amber-400/40' : ''}`} />
+                          )}
+                        </button>
+                        <button
+                          onClick={() => handleRemoveMember(member._id)}
+                          disabled={removingMember === member._id}
+                          className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
+                          title="Remove member"
+                        >
+                          {removingMember === member._id ? (
+                            <span className="w-4 h-4 block border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <FiUserMinus className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
                     )}
                   </div>
                 );

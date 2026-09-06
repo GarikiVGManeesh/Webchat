@@ -126,15 +126,23 @@ export const chatAPI = {
   archiveChat: (id) => api.put(`/chats/archive/${id}`),
   lockChat: (id) => api.put(`/chats/lock/${id}`),
   muteChat: (id) => api.put(`/chats/mute/${id}`),
+  getNotificationSettings: (id) => api.get(`/chats/${id}/notification-settings`),
+  updateNotificationSettings: (id, data) => api.put(`/chats/${id}/notification-settings`, data),
   clearChat: (id) => api.delete(`/chats/${id}/clear`),
   deleteChat: (id) => api.delete(`/chats/${id}`),
   createGroup: (data) => api.post('/chats/group', data),
+  createGroupWithImage: (formData) =>
+    api.post('/chats/group', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
   addGroupMember: (id, data) => api.put(`/chats/group/${id}/add`, data),
   removeGroupMember: (id, data) => api.put(`/chats/group/${id}/remove`, data),
   updateGroup: (id, formData) => api.put(`/chats/group/${id}/update`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   }),
   leaveGroup: (id) => api.put(`/chats/group/${id}/leave`),
+  promoteGroupMember: (id, data) => api.put(`/chats/group/${id}/promote`, data),
+  demoteGroupMember: (id, data) => api.put(`/chats/group/${id}/demote`, data),
   updateVanishMode: (id, data) => api.put(`/chats/${id}/vanish`, data),
 };
 

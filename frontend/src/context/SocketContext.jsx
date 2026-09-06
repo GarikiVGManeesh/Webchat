@@ -30,6 +30,19 @@ export const SocketProvider = ({ children }) => {
   const [isConnected, setIsConnected] = useState(false);
   const socketRef = useRef(null);
 
+  // Per-chat notification modes for the current user, pushed by ChatContext
+  // whenever the chat list changes ({ chatId: 'all' | 'mentions' | 'muted' }).
+  // Used to keep alert sounds quiet for muted/mentions-only chats even when
+  // their socket room is joined.
+  const notificationModesRef = useRef({});
+  useEffect(() => {
+    const handler = (e) => {
+      notificationModesRef.current = e.detail || {};
+    };
+    window.addEventListener('echo:notificationModes', handler);
+    return () => window.removeEventListener('echo:notificationModes', handler);
+  }, []);
+
   // === DESKTOP NOTIFICATIONS — Request permission on auth ===
   useEffect(() => {
     if (isAuthenticated) {
@@ -99,14 +112,17 @@ export const SocketProvider = ({ children }) => {
 
       const prefs = getNotificationPrefs();
 
-      const isMuted = (chat?.mutedBy || []).some(
-        (id) => id.toString() === user?._id?.toString()
-      );
+      const isMuted =
+        chat?.notification?.isMuted ||
+        (chat?.mutedBy || []).some(
+          (id) => id.toString() === user?._id?.toString()
+        );
       const isLocked = (chat?.lockedBy || []).some(
         (id) => id.toString() === user?._id?.toString()
       );
 
-      // Muted conversations never notify.
+      // Muted conversations never notify (the server already filters these;
+      // this is defense in depth).
       if (isMuted) return;
 
       // Locked conversations: NEVER leak sender name or message content.
@@ -175,8 +191,18 @@ export const SocketProvider = ({ children }) => {
 
     // === Listen for 'newMessage' as well (for in-app sound when tab is hidden) ===
     newSocket.on('newMessage', (message) => {
-      // If the message is from someone else and window is not focused, play sound
+      // If the message is from someone else and window is not focused, play
+      // sound — unless this chat is muted or mentions-only (without a mention
+      // of me), per the user's custom notification settings.
       if (message.sender?._id !== user?._id && !isWindowFocused()) {
+        const mode = notificationModesRef.current[message.chat] || 'all';
+        if (mode === 'muted') return;
+        if (
+          mode === 'mentions' &&
+          !(message.content || '').toLowerCase().includes(`@${(user?.username || '').toLowerCase()}`)
+        ) {
+          return;
+        }
         const prefs = getNotificationPrefs();
         if (prefs.notificationSounds) {
           playNotificationSound();

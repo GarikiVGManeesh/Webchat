@@ -252,15 +252,21 @@ exports.sendFileMessage = async (req, res, next) => {
     // Push the file message through Socket.IO so the receiver(s) get it in
     // real time exactly like text messages (files/voice notes are uploaded via
     // this REST endpoint, so without this the other side never sees them until
-    // they reload the chat).
+    // they reload the chat). Each recipient's notification settings for this
+    // chat decide whether they get a notification — a muted chat still
+    // receives the message itself.
     const io = req.app.get('io');
     if (io) {
+      const { shouldNotifyRecipient, chatPrivacyFor } = require('../config/socket');
+
       io.to(chatId).emit('newMessage', populatedMessage);
 
       const updatedChat = await Chat.findById(chatId)
         .populate('participants', 'name email avatar status lastSeen bio')
         .populate('lastMessage');
-      io.to(chatId).emit('chatUpdated', updatedChat);
+      chat.participants.forEach((pId) => {
+        io.to(pId.toString()).emit('chatUpdated', updatedChat.toJSONForViewer(pId));
+      });
 
       const senderInfo = {
         _id: req.user._id,
@@ -272,13 +278,17 @@ exports.sendFileMessage = async (req, res, next) => {
         : receiverId
           ? [receiverId]
           : [];
-      targetIds.forEach((targetId) => {
+      const usernameCache = new Map();
+      for (const targetId of targetIds) {
+        const decision = await shouldNotifyRecipient(chat, targetId, populatedMessage, usernameCache);
+        if (!decision.notify) continue;
         io.to(targetId.toString()).emit('messageNotification', {
           chatId,
+          chat: chatPrivacyFor(chat, targetId),
           message: populatedMessage,
           sender: senderInfo,
         });
-      });
+      }
     }
 
     res.status(201).json({

@@ -41,7 +41,7 @@ exports.getChats = async (req, res, next) => {
         const unreadCount = await Message.countDocuments(unreadQuery);
 
         return {
-          ...chat.toJSON(),
+          ...chat.toJSONForViewer(req.user._id),
           unreadCount,
         };
       })
@@ -76,7 +76,7 @@ exports.getChatById = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'Not authorized.' });
     }
 
-    res.status(200).json({ success: true, chat });
+    res.status(200).json({ success: true, chat: chat.toJSONForViewer(req.user._id) });
   } catch (error) {
     next(error);
   }
@@ -115,7 +115,11 @@ exports.createChat = async (req, res, next) => {
 
     const chat = await Chat.findOrCreatePrivateChat(req.user._id, userId);
 
-    res.status(201).json({ success: true, message: 'Chat started.', chat });
+    res.status(201).json({
+      success: true,
+      message: 'Chat started.',
+      chat: chat.toJSONForViewer(req.user._id),
+    });
   } catch (error) {
     next(error);
   }
@@ -137,6 +141,14 @@ exports.createGroupChat = async (req, res, next) => {
       });
     }
 
+    // Optional group image (Cloudinary via groupAvatarUpload middleware).
+    let groupAvatar = '';
+    let groupAvatarPublicId = '';
+    if (req.file) {
+      groupAvatar = req.file.path;
+      groupAvatarPublicId = req.file.filename || '';
+    }
+
     // Include current user in participants
     const allParticipants = [...new Set([req.user._id.toString(), ...participants])];
 
@@ -144,6 +156,8 @@ exports.createGroupChat = async (req, res, next) => {
       isGroup: true,
       groupName: name,
       groupDescription: description || '',
+      groupAvatar,
+      groupAvatarPublicId,
       participants: allParticipants,
       groupAdmin: [req.user._id],
       createdBy: req.user._id,
@@ -153,15 +167,16 @@ exports.createGroupChat = async (req, res, next) => {
       .populate('participants', 'name email avatar status lastSeen bio')
       .populate('groupAdmin', 'name avatar');
 
-    // Notify all participants via socket
+    // Notify all participants via socket (each viewer sees only their own
+    // notification settings).
     const io = req.app.get('io');
     if (io) {
       allParticipants.forEach((pId) => {
-        io.to(pId.toString()).emit('chatUpdated', populated);
+        io.to(pId.toString()).emit('chatUpdated', populated.toJSONForViewer(pId));
       });
     }
 
-    res.status(201).json({ success: true, chat: populated });
+    res.status(201).json({ success: true, chat: populated.toJSONForViewer(req.user._id) });
   } catch (error) {
     next(error);
   }
@@ -196,7 +211,15 @@ exports.addGroupMember = async (req, res, next) => {
       .populate('participants', 'name email avatar status lastSeen bio')
       .populate('groupAdmin', 'name avatar');
 
-    res.status(200).json({ success: true, chat: populated });
+    // Let every member (including the one just added) refresh their UI live.
+    const io = req.app.get('io');
+    if (io) {
+      chat.participants.forEach((pId) => {
+        io.to(pId.toString()).emit('chatUpdated', populated.toJSONForViewer(pId));
+      });
+    }
+
+    res.status(200).json({ success: true, chat: populated.toJSONForViewer(req.user._id) });
   } catch (error) {
     next(error);
   }
@@ -220,6 +243,17 @@ exports.removeGroupMember = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'Only admins can remove members.' });
     }
 
+    // The target must actually be a member.
+    if (!chat.participants.some((p) => p.toString() === userId)) {
+      return res.status(400).json({ success: false, message: 'User is not a member of this group.' });
+    }
+
+    // Admins cannot remove themselves here — use "Leave group" instead. This
+    // prevents the confusing state of removing yourself while staying admin.
+    if (userId === req.user._id.toString()) {
+      return res.status(400).json({ success: false, message: 'Use "Leave group" to remove yourself.' });
+    }
+
     chat.participants = chat.participants.filter((p) => p.toString() !== userId);
     chat.groupAdmin = chat.groupAdmin.filter((a) => a.toString() !== userId);
     await chat.save();
@@ -228,7 +262,17 @@ exports.removeGroupMember = async (req, res, next) => {
       .populate('participants', 'name email avatar status lastSeen bio')
       .populate('groupAdmin', 'name avatar');
 
-    res.status(200).json({ success: true, chat: populated });
+    // Every remaining member refreshes live; the removed user also learns
+    // they are out so their UI can close/refresh the conversation.
+    const io = req.app.get('io');
+    if (io) {
+      populated.participants.forEach((p) => {
+        io.to((p._id || p).toString()).emit('chatUpdated', populated.toJSONForViewer(p._id || p));
+      });
+      io.to(userId).emit('chatUpdated', { ...populated.toJSONForViewer(userId), _removedFromGroup: chat._id });
+    }
+
+    res.status(200).json({ success: true, chat: populated.toJSONForViewer(req.user._id) });
   } catch (error) {
     next(error);
   }
@@ -260,6 +304,17 @@ exports.updateGroup = async (req, res, next) => {
     }
 
     await chat.save();
+
+    // Group info changes are visible to everyone — push to all members.
+    const io = req.app.get('io');
+    if (io) {
+      const populatedAfterSave = await Chat.findById(chat._id)
+        .populate('participants', 'name email avatar status lastSeen bio')
+        .populate('groupAdmin', 'name avatar');
+      populatedAfterSave.participants.forEach((p) => {
+        io.to((p._id || p).toString()).emit('chatUpdated', populatedAfterSave.toJSONForViewer(p._id || p));
+      });
+    }
 
     const populated = await Chat.findById(chat._id)
       .populate('participants', 'name email avatar status lastSeen bio')
@@ -304,8 +359,121 @@ exports.leaveGroup = async (req, res, next) => {
       return res.status(200).json({ success: true, message: 'Group deleted (no members left).' });
     }
 
+    // The last admin must hand the group over: promote the first remaining
+    // member before leaving so the group is never leaderless.
+    const wasAdmin = chat.groupAdmin.some((a) => a.toString() === req.user._id.toString());
+    if (wasAdmin && chat.groupAdmin.length === 1) {
+      chat.groupAdmin = [chat.participants[0]];
+    }
+
     await chat.save();
+
+    const populated = await Chat.findById(chat._id)
+      .populate('participants', 'name email avatar status lastSeen bio')
+      .populate('groupAdmin', 'name avatar');
+
+    // Remaining members refresh their member list live.
+    const io = req.app.get('io');
+    if (io) {
+      populated.participants.forEach((p) => {
+        io.to((p._id || p).toString()).emit('chatUpdated', populated.toJSONForViewer(p._id || p));
+      });
+    }
+
     res.status(200).json({ success: true, message: 'Left group successfully.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Promote a member to group admin (admin only)
+ * @route   PUT /api/chats/group/:id/promote
+ * @access  Private (group admin)
+ */
+exports.promoteMember = async (req, res, next) => {
+  try {
+    const { userId } = req.body;
+    const chat = await Chat.findById(req.params.id);
+
+    if (!chat || !chat.isGroup) {
+      return res.status(404).json({ success: false, message: 'Group not found.' });
+    }
+
+    if (!chat.groupAdmin.some((a) => a.toString() === req.user._id.toString())) {
+      return res.status(403).json({ success: false, message: 'Only admins can promote members.' });
+    }
+
+    if (!chat.participants.some((p) => p.toString() === userId)) {
+      return res.status(400).json({ success: false, message: 'User is not a member of this group.' });
+    }
+
+    if (chat.groupAdmin.some((a) => a.toString() === userId)) {
+      return res.status(400).json({ success: false, message: 'User is already an admin.' });
+    }
+
+    chat.groupAdmin.push(userId);
+    await chat.save();
+
+    const populated = await Chat.findById(chat._id)
+      .populate('participants', 'name email avatar status lastSeen bio')
+      .populate('groupAdmin', 'name avatar');
+
+    const io = req.app.get('io');
+    if (io) {
+      populated.participants.forEach((p) => {
+        io.to((p._id || p).toString()).emit('chatUpdated', populated.toJSONForViewer(p._id || p));
+      });
+    }
+
+    res.status(200).json({ success: true, chat: populated.toJSONForViewer(req.user._id) });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Demote a group admin back to member (admin only)
+ * @route   PUT /api/chats/group/:id/demote
+ * @access  Private (group admin)
+ */
+exports.demoteMember = async (req, res, next) => {
+  try {
+    const { userId } = req.body;
+    const chat = await Chat.findById(req.params.id);
+
+    if (!chat || !chat.isGroup) {
+      return res.status(404).json({ success: false, message: 'Group not found.' });
+    }
+
+    if (!chat.groupAdmin.some((a) => a.toString() === req.user._id.toString())) {
+      return res.status(403).json({ success: false, message: 'Only admins can demote admins.' });
+    }
+
+    if (!chat.groupAdmin.some((a) => a.toString() === userId)) {
+      return res.status(400).json({ success: false, message: 'User is not an admin.' });
+    }
+
+    // The group must always keep at least one admin.
+    if (chat.groupAdmin.length <= 1) {
+      return res.status(400).json({ success: false, message: 'The group must have at least one admin.' });
+    }
+
+    chat.groupAdmin = chat.groupAdmin.filter((a) => a.toString() !== userId);
+    await chat.save();
+
+    const populated = await Chat.findById(chat._id)
+      .populate('participants', 'name email avatar status lastSeen bio')
+      .populate('groupAdmin', 'name avatar');
+
+    const io = req.app.get('io');
+    if (io) {
+      populated.participants.forEach((p) => {
+        io.to((p._id || p).toString()).emit('chatUpdated', populated.toJSONForViewer(p._id || p));
+      });
+    }
+
+    res.status(200).json({ success: true, chat: populated.toJSONForViewer(req.user._id) });
   } catch (error) {
     next(error);
   }
@@ -455,7 +623,7 @@ exports.toggleChatLock = async (req, res, next) => {
       .populate('lastMessage');
     const io = req.app.get('io');
     if (io) {
-      io.to(userId).emit('chatUpdated', populated);
+      io.to(userId).emit('chatUpdated', populated.toJSONForViewer(userId));
     }
 
     res.status(200).json({ success: true, isLocked: !isLocked });
@@ -502,10 +670,111 @@ exports.toggleChatMute = async (req, res, next) => {
       .populate('lastMessage');
     const io = req.app.get('io');
     if (io) {
-      io.to(userId).emit('chatUpdated', populated);
+      io.to(userId).emit('chatUpdated', populated.toJSONForViewer(userId));
     }
 
     res.status(200).json({ success: true, isMuted: !isMuted });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get the current user's notification settings for a chat
+ * @route   GET /api/chats/:id/notification-settings
+ * @access  Private
+ */
+exports.getNotificationSettings = async (req, res, next) => {
+  try {
+    const chat = await Chat.findById(req.params.id);
+    if (!chat) {
+      return res.status(404).json({ success: false, message: 'Chat not found.' });
+    }
+
+    if (!chat.participants.some((p) => p.toString() === req.user._id.toString())) {
+      return res.status(403).json({ success: false, message: 'Not authorized.' });
+    }
+
+    const effective = chat.effectiveNotificationFor(req.user._id);
+    res.status(200).json({ success: true, notification: effective });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Set the current user's notification settings for a chat
+ * @route   PUT /api/chats/:id/notification-settings
+ * @access  Private
+ * @body    { mode: 'all' | 'mentions' | 'muted', muteUntil?: ISO date | null }
+ *          muteUntil is only meaningful with mode 'muted' (timed mute).
+ *          Omitted/null muteUntil with mode 'muted' = "until I turn it back on".
+ */
+exports.updateNotificationSettings = async (req, res, next) => {
+  try {
+    const { mode, muteUntil } = req.body;
+    const validModes = ['all', 'mentions', 'muted'];
+
+    if (!validModes.includes(mode)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid notification mode. Use all, mentions or muted.',
+      });
+    }
+
+    let muteUntilDate = null;
+    if (mode === 'muted' && muteUntil) {
+      muteUntilDate = new Date(muteUntil);
+      if (Number.isNaN(muteUntilDate.getTime()) || muteUntilDate.getTime() <= Date.now()) {
+        return res.status(400).json({
+          success: false,
+          message: 'muteUntil must be a valid future date.',
+      });
+      }
+    }
+
+    const chat = await Chat.findById(req.params.id);
+    if (!chat) {
+      return res.status(404).json({ success: false, message: 'Chat not found.' });
+    }
+
+    if (!chat.participants.some((p) => p.toString() === req.user._id.toString())) {
+      return res.status(403).json({ success: false, message: 'Not authorized.' });
+    }
+
+    // Settings are stored per-user; changing them never touches anyone else's
+    // preferences, and notification changes must not reorder the chat list.
+    const notification = await chat.setNotificationFor(
+      req.user._id,
+      mode,
+      muteUntilDate
+    );
+
+    // Keep the legacy mutedBy flag in sync so existing mute checks (and the
+    // sidebar bell-off icon) stay correct for this user only.
+    const syncFilter =
+      mode === 'muted'
+        ? { $addToSet: { mutedBy: req.user._id } }
+        : { $pull: { mutedBy: req.user._id } };
+    await Chat.updateOne(
+      { _id: chat._id },
+      syncFilter,
+      { timestamps: false }
+    );
+
+    // Refresh only the acting user's chat list, mirroring the lock/mute flow.
+    const populated = await Chat.findById(chat._id)
+      .populate('participants', 'name email avatar status lastSeen bio')
+      .populate('lastMessage');
+    const io = req.app.get('io');
+    if (io) {
+      io.to(req.user._id.toString()).emit(
+        'chatUpdated',
+        populated.toJSONForViewer(req.user._id)
+      );
+    }
+
+    res.status(200).json({ success: true, notification });
   } catch (error) {
     next(error);
   }
@@ -543,7 +812,7 @@ exports.clearChat = async (req, res, next) => {
     const io = req.app.get('io');
     if (io) {
       chat.participants.forEach((pId) => {
-        io.to(pId.toString()).emit('chatUpdated', populated);
+        io.to(pId.toString()).emit('chatUpdated', populated.toJSONForViewer(pId));
       });
     }
 

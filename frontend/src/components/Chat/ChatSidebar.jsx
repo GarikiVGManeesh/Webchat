@@ -25,6 +25,7 @@ import {
   FiLock,
   FiBellOff,
   FiCamera,
+  FiUsers,
 } from 'react-icons/fi';
 
 const ChatSidebar = ({ isMobileOpen, onCloseMobile }) => {
@@ -162,7 +163,9 @@ const ChatSidebar = ({ isMobileOpen, onCloseMobile }) => {
   // chatUpdated, so loadChats here just guarantees the list is fresh).
   const handleGroupCreated = (chat) => {
     setShowCreateGroup(false);
-    setSidebarTab('chats');
+    // Groups live under their own tab, so land there so the new group is
+    // visible in its proper section.
+    setSidebarTab('groups');
     loadChats();
     selectChat(chat);
     if (onCloseMobile) onCloseMobile();
@@ -185,8 +188,13 @@ const ChatSidebar = ({ isMobileOpen, onCloseMobile }) => {
     return new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt);
   };
 
-  const activeChats = chats.filter((chat) => !isArchivedForMe(chat));
-  const archivedChats = chats.filter(isArchivedForMe);
+  const isGroupChat = (chat) => !!chat.isGroup;
+
+  const myGroupChats = chats.filter(isGroupChat);
+  // The Chats tab holds one-to-one chats only — group chats live in the
+  // separate Groups tab (each tab stays its own section).
+  const activeChats = chats.filter((chat) => !isGroupChat(chat) && !isArchivedForMe(chat));
+  const archivedChats = chats.filter((chat) => !isGroupChat(chat) && isArchivedForMe(chat));
 
   // The All/Unread/Pinned filters apply to the non-archived chats only.
   const filteredChats = activeChats
@@ -198,6 +206,10 @@ const ChatSidebar = ({ isMobileOpen, onCloseMobile }) => {
     .sort(sortChats);
 
   const sortedArchivedChats = [...archivedChats].sort(sortChats);
+
+  // Groups tab lists group chats separately (archived groups stay reachable).
+  const activeGroups = myGroupChats.filter((chat) => !isArchivedForMe(chat)).sort(sortChats);
+  const archivedGroups = myGroupChats.filter(isArchivedForMe).sort(sortChats);
 
   // Shared row renderer for active and archived chats.
   const renderChatRow = (chat) => {
@@ -302,7 +314,15 @@ const ChatSidebar = ({ isMobileOpen, onCloseMobile }) => {
                   }
                 })()}
                 <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                  {isMyLastMessage ? 'You: ' : ''}
+                  {chat.isGroup
+                    ? isMyLastMessage
+                      ? 'You: '
+                      : lastMsg.sender?.name
+                        ? `${lastMsg.sender.name}: `
+                        : ''
+                    : isMyLastMessage
+                      ? 'You: '
+                      : ''}
                   {lastMsg.messageType === 'image' ? '📷 Photo'
                     : lastMsg.messageType === 'video' ? '🎥 Video'
                     : lastMsg.messageType === 'file' ? '📎 File'
@@ -458,10 +478,11 @@ const ChatSidebar = ({ isMobileOpen, onCloseMobile }) => {
 
 
       {/* Sidebar tabs */}
-      <div className="flex-shrink-0 px-4 pt-3 flex gap-2">
+      <div className="flex-shrink-0 px-4 pt-3 flex flex-wrap gap-2">
         <button onClick={() => setSidebarTab('chats')} className={`px-3 py-1.5 text-xs font-medium rounded-full ${sidebarTab === 'chats' ? 'bg-primary-500 text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-primary-500/10 dark:hover:bg-white/5'}`}>Chats</button>
         <button onClick={() => setSidebarTab('friends')} className={`px-3 py-1.5 text-xs font-medium rounded-full ${sidebarTab === 'friends' ? 'bg-primary-500 text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-primary-500/10 dark:hover:bg-white/5'}`}>Friends{friends.length ? ` (${friends.length})` : ''}</button>
         <button onClick={() => setSidebarTab('requests')} className={`px-3 py-1.5 text-xs font-medium rounded-full ${sidebarTab === 'requests' ? 'bg-primary-500 text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-primary-500/10 dark:hover:bg-white/5'}`}>Requests{friendRequests.receivedRequests.length ? ` (${friendRequests.receivedRequests.length})` : ''}</button>
+        <button onClick={() => setSidebarTab('groups')} className={`px-3 py-1.5 text-xs font-medium rounded-full ${sidebarTab === 'groups' ? 'bg-primary-500 text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-primary-500/10 dark:hover:bg-white/5'}`}>Groups{myGroupChats.length ? ` (${myGroupChats.length})` : ''}</button>
       </div>
 
       {/* Filter Tabs */}
@@ -491,7 +512,56 @@ const ChatSidebar = ({ isMobileOpen, onCloseMobile }) => {
       )}
 
       <div className="flex-1 overflow-y-auto scrollbar-hide">
-        {sidebarTab === 'friends' ? (
+        {sidebarTab === 'groups' ? (
+          loadingChats ? (
+            <ChatListSkeleton />
+          ) : activeGroups.length === 0 && archivedGroups.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center p-8">
+              <div className="w-16 h-16 glass rounded-full flex items-center justify-center mb-4">
+                <FiUsers className="w-8 h-8 text-gray-400" />
+              </div>
+              <p className="text-gray-500 dark:text-gray-400 font-medium">No groups yet</p>
+              <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
+                Create a group to chat with multiple friends at once
+              </p>
+              <button
+                onClick={() => setShowCreateGroup(true)}
+                className="mt-5 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white text-sm font-medium rounded-xl transition-all active:scale-95"
+              >
+                Create Group
+              </button>
+            </div>
+          ) : (
+            <div>
+              <div className="px-4 pt-3 pb-1 flex items-center justify-between">
+                <p className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                  Your Groups ({myGroupChats.length})
+                </p>
+                <button
+                  onClick={() => setShowCreateGroup(true)}
+                  className="flex items-center gap-1 text-[11px] font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 px-2 py-1 rounded-lg hover:bg-primary-500/10 dark:hover:bg-white/5 transition-all"
+                >
+                  <FiUserPlus className="w-3.5 h-3.5" />
+                  New Group
+                </button>
+              </div>
+              <div className="stagger-children">
+                {activeGroups.map(renderChatRow)}
+              </div>
+              {archivedGroups.length > 0 && (
+                <div>
+                  <div className="px-4 pt-3 pb-1 flex items-center gap-1.5 text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                    <FiArchive className="w-3.5 h-3.5" />
+                    Archived ({archivedGroups.length})
+                  </div>
+                  <div className="stagger-children">
+                    {archivedGroups.map(renderChatRow)}
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        ) : sidebarTab === 'friends' ? (
           friends.length ? friends.map((friend) => (
             <button key={friend._id} onClick={() => handleSelectUser(friend._id)} className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-primary-500/10 dark:hover:bg-white/5 transition-all">
               {friend.avatar ? <img src={friend.avatar} alt={friend.name} className="w-11 h-11 rounded-full object-cover" /> : <div className="w-11 h-11 rounded-full flex items-center justify-center text-white text-sm font-bold" style={{ backgroundColor: stringToColor(friend.name) }}>{getInitials(friend.name)}</div>}

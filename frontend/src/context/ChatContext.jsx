@@ -38,6 +38,45 @@ export const ChatProvider = ({ children }) => {
   const [isSearching, setIsSearching] = useState(false);
   const messagesEndRef = useRef(null);
 
+  // === CUSTOM NOTIFICATIONS: resolve my effective mode for a chat ===
+  // 'all' is the default; a timed mute that has expired counts as 'all'.
+  // Falls back to the legacy mutedBy flag for rows without settings.
+  const notificationModeFor = useCallback(
+    (chat) => {
+      if (!chat) return 'all';
+      const mine = (chat.notificationSettings || []).find(
+        (s) => s.user === user?._id || s.user?._id === user?._id
+      );
+      if (mine) {
+        if (
+          mine.mode === 'muted' &&
+          mine.muteUntil &&
+          new Date(mine.muteUntil).getTime() <= Date.now()
+        ) {
+          return 'all';
+        }
+        return mine.mode;
+      }
+      const isMuted = (chat.mutedBy || []).some(
+        (id) => id.toString() === user?._id?.toString()
+      );
+      return isMuted ? 'muted' : 'all';
+    },
+    [user?._id]
+  );
+
+  // Publish all chat modes so SocketContext can gate alert sounds.
+  useEffect(() => {
+    const modes = {};
+    chats.forEach((c) => {
+      modes[c._id] = notificationModeFor(c);
+    });
+    if (activeChat) modes[activeChat._id] = notificationModeFor(activeChat);
+    window.dispatchEvent(
+      new CustomEvent('echo:notificationModes', { detail: modes })
+    );
+  }, [chats, activeChat, notificationModeFor]);
+
   // Chats unlocked with the privacy PIN during THIS session only. Kept purely
   // in memory: switching away from a chat (or closing the tab/browser) locks
   // the conversation again automatically.
@@ -337,12 +376,24 @@ export const ChatProvider = ({ children }) => {
       if (sender?._id === user?._id || activeChat?._id === message.chat) return;
 
       const chatRow = chat || chats.find((c) => c._id === message.chat);
-      const isMuted = (chatRow?.mutedBy || []).some((id) => id.toString() === user?._id?.toString());
+      // Respect this user's custom notification mode for the conversation —
+      // the server already withholds notifications for muted chats, so this
+      // mainly covers mode changes made after the socket connected.
+      const mode = notificationModeFor(chatRow);
       const isLocked = (chatRow?.lockedBy || []).some((id) => id.toString() === user?._id?.toString());
 
-      if (isMuted) {
+      if (mode === 'muted') {
         loadChats();
         return;
+      }
+      if (mode === 'mentions') {
+        const mentioned = (message.content || '')
+          .toLowerCase()
+          .includes(`@${(user?.username || '').toLowerCase()}`);
+        if (!mentioned) {
+          loadChats();
+          return;
+        }
       }
 
       // Locked conversations never leak message content or the sender's name
@@ -480,6 +531,7 @@ export const ChatProvider = ({ children }) => {
     sendFileMessage,
     searchMessages,
     markAsRead,
+    notificationModeFor,
     setActiveChat,
     emitTyping,
     emitStopTyping,

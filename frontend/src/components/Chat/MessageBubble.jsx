@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
-import { formatMessageTime, getFileIconColor, formatFileSize, getFileNameFromUrl } from '../../utils/helpers';
+import { formatMessageTime, getFileIconColor, formatFileSize, getFileNameFromUrl, stringToColor } from '../../utils/helpers';
 import { FiCheck, FiDownload, FiFile, FiTrash2, FiEdit2, FiCornerUpLeft, FiMoreVertical, FiShare2, FiMapPin, FiClock, FiPlus, FiStar } from 'react-icons/fi';
 
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
@@ -13,7 +13,7 @@ const EXTENDED_EMOJIS = [
   '💀', '🫡', '🤝', '❤️‍🔥', '🥹', '😤', '🫠', '💕', '🙄', '😈',
 ];
 
-const MessageBubble = ({ message, isSent, sender, onDelete, onEdit, onReply, onForward, onStarMessage, onUnstarMessage, showAvatar = true }) => {
+const MessageBubble = ({ message, isSent, sender, onDelete, onEdit, onReply, onForward, onStarMessage, onUnstarMessage, showAvatar = true, showSenderName = false }) => {
   // A message is starred when the backend flags it (message.starred).
   const isStarred = !!message.starred;
   const [showActions, setShowActions] = useState(false);
@@ -382,6 +382,16 @@ const MessageBubble = ({ message, isSent, sender, onDelete, onEdit, onReply, onF
         {message.isForwarded && (
           <p className={`text-[10px] italic mb-0.5 flex items-center gap-1 animate-fade-in ${isSent ? 'text-white/60' : 'text-gray-400'}`}>
             <FiShare2 className="w-3 h-3" /> Forwarded
+          </p>
+        )}
+
+        {/* Sender name above received messages in group chats */}
+        {!isSent && showSenderName && (
+          <p
+            className="text-[11px] font-semibold mb-0.5 px-1"
+            style={{ color: sender?.name ? stringToColor(sender.name) : '#9ca3af' }}
+          >
+            {sender?.name || 'Unknown'}
           </p>
         )}
 

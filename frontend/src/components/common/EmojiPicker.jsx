@@ -12,8 +12,26 @@ const EmojiPicker = ({ onSelect, className = '' }) => {
         setShowPicker(false);
       }
     };
+    // Allow dismissing the picker with Escape, and restore focus to the
+    // message input (if any) so typing can continue.
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setShowPicker(false);
+        const active = document.activeElement;
+        if (active && active.tagName === 'BODY' && pickerRef.current) {
+          const input = pickerRef.current
+            .closest('form')
+            ?.querySelector('textarea');
+          input?.focus();
+        }
+      }
+    };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, []);
 
   return (
@@ -32,8 +50,9 @@ const EmojiPicker = ({ onSelect, className = '' }) => {
           <div className="shadow-2xl rounded-2xl overflow-hidden border border-gray-200 dark:border-dark-600">
             <EmojiPickerReact
               onEmojiClick={(emojiObject) => {
+                // Keep the picker open so several emojis can be inserted in a
+                // row; it closes on outside click or Escape.
                 onSelect(emojiObject.emoji);
-                setShowPicker(false);
               }}
               theme={document.documentElement.classList.contains('dark') ? 'dark' : 'light'}
               searchPlaceholder="Search emojis..."

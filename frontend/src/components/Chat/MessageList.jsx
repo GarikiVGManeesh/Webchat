@@ -134,6 +134,7 @@ const MessageList = ({ onEditMessage, onReplyMessage, onDeleteMessage, onForward
               isSent={isSentByMe(message)}
               sender={getSenderForMessage(message)}
               showAvatar={shouldShowAvatar(index)}
+              showSenderName={!!activeChat?.isGroup && !isSentByMe(message) && shouldShowAvatar(index)}
               onDelete={onDeleteMessage}
               onEdit={onEditMessage}
               onReply={onReplyMessage}

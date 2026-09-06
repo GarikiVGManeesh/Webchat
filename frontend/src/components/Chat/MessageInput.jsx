@@ -68,9 +68,27 @@ const MessageInput = ({ replyTo, onClearReply }) => {
     }
   };
 
+  // Insert the picked emoji at the text cursor (replacing any highlighted
+  // selection) and keep the composer focused so typing can continue.
   const handleEmojiSelect = (emoji) => {
-    setMessage((prev) => prev + emoji);
-    inputRef.current?.focus();
+    const textarea = inputRef.current;
+    const start =
+      textarea && typeof textarea.selectionStart === 'number'
+        ? textarea.selectionStart
+        : message.length;
+    const end =
+      textarea && typeof textarea.selectionEnd === 'number'
+        ? textarea.selectionEnd
+        : start;
+    const next = message.slice(0, start) + emoji + message.slice(end);
+    setMessage(next);
+    const caret = start + emoji.length;
+    requestAnimationFrame(() => {
+      if (!inputRef.current) return;
+      inputRef.current.focus();
+      const pos = Math.min(caret, inputRef.current.value.length);
+      inputRef.current.setSelectionRange(pos, pos);
+    });
   };
 
   const handleKeyDown = (e) => {

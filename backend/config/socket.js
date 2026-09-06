@@ -19,6 +19,54 @@ const getExpiryDate = (vanishMode) => {
   return durations[vanishMode] ? new Date(Date.now() + durations[vanishMode]) : null;
 };
 
+// === CUSTOM NOTIFICATIONS (per-user, per-conversation) ===
+
+// Extract @username tokens from a message's text content (username charset
+// mirrors the User schema: letters, numbers, dots, underscores).
+const extractMentionedUsernames = (content) => {
+  if (!content || typeof content !== 'string') return new Set();
+  const matches = content.match(/@([a-zA-Z0-9._]{3,20})/g) || [];
+  return new Set(matches.map((m) => m.slice(1).toLowerCase()));
+};
+
+// Decide whether ONE recipient should receive a messageNotification.
+// A muted chat (timed or indefinite) suppresses notifications only — the
+// message itself is always delivered and never blocked or deleted.
+// 'mentions' notifies only when the message text @mentions the recipient.
+const shouldNotifyRecipient = async (chat, recipientId, message, usernameCache) => {
+  const mode = chat.notificationModeFor(recipientId);
+  if (mode === 'muted') return { notify: false, mode };
+
+  if (mode === 'mentions') {
+    const id = recipientId.toString();
+    if (!usernameCache.has(id)) {
+      const u = await User.findById(recipientId).select('username');
+      usernameCache.set(id, (u && u.username) || '');
+    }
+    const username = (usernameCache.get(id) || '').toLowerCase();
+    const mentioned = extractMentionedUsernames(message.content).has(username);
+    return { notify: !!username && mentioned, mode };
+  }
+
+  return { notify: true, mode };
+};
+
+// Per-recipient privacy payload: the recipient sees only their OWN settings.
+const chatPrivacyFor = (chat, recipientId) => {
+  const effective = chat.effectiveNotificationFor(recipientId);
+  return {
+    _id: chat._id,
+    isGroup: chat.isGroup,
+    lockedBy: chat.lockedBy || [],
+    mutedBy: chat.mutedBy || [],
+    notification: {
+      mode: effective.mode,
+      isMuted: effective.isMuted,
+      muteUntil: effective.muteUntil,
+    },
+  };
+};
+
 /**
  * Initialize Socket.IO server
  */
@@ -166,40 +214,36 @@ const initializeSocket = (httpServer) => {
         // Emit to chat room
         io.to(chatId).emit('newMessage', populatedMessage);
 
-        // Notification to receiver(s). We attach the chat's per-user privacy
-        // flags (lock/mute) so the client can keep notifications private
-        // without fetching the chat separately.
-        const chatPrivacy = {
-          _id: chat._id,
-          isGroup: chat.isGroup,
-          lockedBy: chat.lockedBy || [],
-          mutedBy: chat.mutedBy || [],
-        };
-        if (chat.isGroup) {
-          chat.participants.forEach((pId) => {
-            if (pId.toString() !== userId) {
-              io.to(pId.toString()).emit('messageNotification', {
-                chatId,
-                chat: chatPrivacy,
-                message: populatedMessage,
-                sender: { _id: socket.user._id, name: socket.user.name, avatar: socket.user.avatar },
-              });
-            }
-          });
-        } else if (receiverId) {
-          io.to(receiverId.toString()).emit('messageNotification', {
+        // Notification to receiver(s), respecting EACH recipient's own
+        // notification settings for this chat. Muted chats get no notification
+        // (the message itself still arrives); 'mentions' only notifies when
+        // the message @mentions that recipient's username.
+        const usernameCache = new Map();
+        const senderInfo = { _id: socket.user._id, name: socket.user.name, avatar: socket.user.avatar };
+        const recipients = chat.isGroup
+          ? chat.participants.filter((pId) => pId.toString() !== userId)
+          : receiverId
+            ? [receiverId]
+            : [];
+        for (const pId of recipients) {
+          const decision = await shouldNotifyRecipient(chat, pId, populatedMessage, usernameCache);
+          if (!decision.notify) continue;
+          io.to(pId.toString()).emit('messageNotification', {
             chatId,
-            chat: chatPrivacy,
+            chat: chatPrivacyFor(chat, pId),
             message: populatedMessage,
-            sender: { _id: socket.user._id, name: socket.user.name, avatar: socket.user.avatar },
+            sender: senderInfo,
           });
         }
 
-        // Update chat list
+        // Update chat list — each participant receives their own serialized
+        // copy so notification settings never cross users.
         const updatedChat = await Chat.findById(chatId)
           .populate('participants', 'name email avatar status lastSeen bio')
           .populate('lastMessage');
-        io.to(chatId).emit('chatUpdated', updatedChat);
+        chat.participants.forEach((pId) => {
+          io.to(pId.toString()).emit('chatUpdated', updatedChat.toJSONForViewer(pId));
+        });
 
         callback({ success: true, message: populatedMessage });
       } catch (error) {
@@ -300,12 +344,22 @@ const initializeSocket = (httpServer) => {
 
         io.to(targetChatId).emit('newMessage', populated);
 
+        // Forwarded messages respect the recipient's notification settings too.
         if (receiverId) {
-          io.to(receiverId.toString()).emit('messageNotification', {
-            chatId: targetChatId,
-            message: populated,
-            sender: { _id: socket.user._id, name: socket.user.name, avatar: socket.user.avatar },
-          });
+          const decision = await shouldNotifyRecipient(
+            targetChat,
+            receiverId,
+            populated,
+            new Map()
+          );
+          if (decision.notify) {
+            io.to(receiverId.toString()).emit('messageNotification', {
+              chatId: targetChatId,
+              chat: chatPrivacyFor(targetChat, receiverId),
+              message: populated,
+              sender: { _id: socket.user._id, name: socket.user.name, avatar: socket.user.avatar },
+            });
+          }
         }
 
         callback({ success: true, message: populated });
@@ -433,4 +487,11 @@ let ioInstance = null;
 const getIO = () => ioInstance;
 const setIO = (io) => { ioInstance = io; };
 
-module.exports = { initializeSocket, getIO, setIO, onlineUsers };
+module.exports = {
+  initializeSocket,
+  getIO,
+  setIO,
+  onlineUsers,
+  shouldNotifyRecipient,
+  chatPrivacyFor,
+};

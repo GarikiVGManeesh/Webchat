@@ -98,13 +98,56 @@ const ChatSchema = new mongoose.Schema(
         ref: 'User',
       },
     ],
+    // === CUSTOM NOTIFICATIONS (per-user, per-conversation) ===
+    // One entry per participant who changed their notification settings for
+    // THIS chat only. mode: 'all' (default, every message notifies),
+    // 'mentions' (only messages mentioning @username), 'muted' (no
+    // notifications at all). muteUntil powers the timed mute durations
+    // (1h/8h/1 week); null means muted until turned back on. A missing entry
+    // means 'all'. Each user's entry is private — see the toJSON transform.
+    notificationSettings: [
+      {
+        user: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User',
+          required: true,
+        },
+        mode: {
+          type: String,
+          enum: ['all', 'mentions', 'muted'],
+          default: 'all',
+        },
+        muteUntil: {
+          type: Date,
+          default: null,
+        },
+      },
+    ],
   },
   {
     timestamps: true,
-    toJSON: { virtuals: true },
-    toObject: { virtuals: true },
+    toJSON: { virtuals: true, transform: hideOtherUsersNotificationSettings },
+    toObject: { virtuals: true, transform: hideOtherUsersNotificationSettings },
   }
 );
+
+// === PRIVACY: notification settings are per-user and must never leak. ===
+// Every chat serialization strips other participants' notification settings,
+// so API responses and socket payloads only ever carry the viewer's own row.
+function hideOtherUsersNotificationSettings(doc, ret) {
+  const settings = ret.notificationSettings;
+  if (Array.isArray(settings) && settings.length > 0) {
+    // doc may be absent when serializing plain objects (e.g. lean/socket
+    // payloads); fall back to filtering nothing out in that case.
+    const viewerId = doc && doc.__viewerId ? doc.__viewerId.toString() : null;
+    ret.notificationSettings = viewerId
+      ? settings.filter(
+          (s) => s.user && s.user.toString() === viewerId
+        )
+      : [];
+  }
+  return ret;
+}
 
 // Virtual for messages
 ChatSchema.virtual('messages', {
@@ -118,6 +161,85 @@ ChatSchema.virtual('messages', {
 ChatSchema.index({ participants: 1 });
 ChatSchema.index({ updatedAt: -1 });
 ChatSchema.index({ isGroup: 1 });
+
+// === CUSTOM NOTIFICATION SETTINGS HELPERS (per-user, per-conversation) ===
+
+// Get this user's notification mode for the chat ('all' when unset).
+ChatSchema.methods.notificationModeFor = function (userId) {
+  const id = userId.toString();
+  const entry = (this.notificationSettings || []).find(
+    (s) => s.user && s.user.toString() === id
+  );
+  if (!entry) return 'all';
+  // A timed mute that has expired behaves as if it was never set.
+  if (
+    entry.mode === 'muted' &&
+    entry.muteUntil &&
+    new Date(entry.muteUntil).getTime() <= Date.now()
+  ) {
+    return 'all';
+  }
+  return entry.mode;
+};
+
+// Resolve this user's effective notification settings for the chat.
+// 'muted' mode without a muteUntil means "until I turn it back on".
+ChatSchema.methods.effectiveNotificationFor = function (userId) {
+  const id = userId.toString();
+  const mode = this.notificationModeFor(id);
+  if (mode !== 'muted') {
+    return { mode, isMuted: false, muteUntil: null };
+  }
+  const entry = (this.notificationSettings || []).find(
+    (s) => s.user && s.user.toString() === id
+  );
+  return {
+    mode: 'muted',
+    isMuted: true,
+    muteUntil: (entry && entry.muteUntil) || null,
+  };
+};
+
+// Set this user's notification settings for the chat. mode 'all' removes the
+// entry entirely (the default needs no row). A mute duration is applied by
+// passing muteUntil; muting "until turned back on" passes muteUntil = null.
+ChatSchema.methods.setNotificationFor = async function (userId, mode, muteUntil = null) {
+  const id = userId.toString();
+  const entry = (this.notificationSettings || []).find(
+    (s) => s.user && s.user.toString() === id
+  );
+
+  if (mode === 'all') {
+    if (entry) {
+      this.notificationSettings = this.notificationSettings.filter(
+        (s) => !(s.user && s.user.toString() === id)
+      );
+    }
+  } else if (entry) {
+    entry.mode = mode;
+    entry.muteUntil = mode === 'muted' ? muteUntil || null : null;
+  } else {
+    this.notificationSettings.push({
+      user: id,
+      mode,
+      muteUntil: mode === 'muted' ? muteUntil || null : null,
+    });
+  }
+
+  await this.save();
+  return this.effectiveNotificationFor(id);
+};
+
+// Serialize this chat for a specific viewer: their own notification settings
+// are included, every other participant's are stripped by the transform.
+ChatSchema.methods.toJSONForViewer = function (viewerId) {
+  this.__viewerId = viewerId ? viewerId.toString() : null;
+  try {
+    return this.toJSON();
+  } finally {
+    delete this.__viewerId;
+  }
+};
 
 // Clear a list of per-user flags (deletedFor/archivedBy) for the given users.
 // Called whenever the chat becomes active again for those users, e.g. a new

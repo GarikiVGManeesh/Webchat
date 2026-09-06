@@ -68,6 +68,12 @@ const createUploadMiddleware = (
 const avatarUpload = createUploadMiddleware('avatars', ['jpg', 'jpeg', 'png', 'gif', 'webp'], 5 * 1024 * 1024);
 
 /**
+ * Group avatar upload middleware (images only, max 5MB) — used for group
+ * creation and group info updates.
+ */
+const groupAvatarUpload = createUploadMiddleware('group-avatars', ['jpg', 'jpeg', 'png', 'gif', 'webp'], 5 * 1024 * 1024);
+
+/**
  * Message file upload middleware (all types, max 10MB)
  */
 const messageFileUpload = createUploadMiddleware('messages', null, 10 * 1024 * 1024);
@@ -90,4 +96,4 @@ const storyUpload = createUploadMiddleware(
   }
 );
 
-module.exports = { avatarUpload, messageFileUpload, storyUpload, createUploadMiddleware };
+module.exports = { avatarUpload, groupAvatarUpload, messageFileUpload, storyUpload, createUploadMiddleware };

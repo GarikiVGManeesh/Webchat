@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { chatAPI, userAPI } from '../../utils/api';
 import { getInitials, stringToColor } from '../../utils/helpers';
 import toast from 'react-hot-toast';
-import { FiX, FiSearch, FiUsers, FiCheck, FiChevronRight, FiChevronLeft } from 'react-icons/fi';
+import { FiX, FiSearch, FiUsers, FiCheck, FiChevronRight, FiChevronLeft, FiCamera } from 'react-icons/fi';
 
 const CreateGroupModal = ({ onClose, onGroupCreated }) => {
   const { user } = useAuth();
@@ -15,6 +15,8 @@ const CreateGroupModal = ({ onClose, onGroupCreated }) => {
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [groupName, setGroupName] = useState('');
   const [description, setDescription] = useState('');
+  const [groupImage, setGroupImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const [creating, setCreating] = useState(false);
 
   // Load friends list on mount
@@ -62,6 +64,18 @@ const CreateGroupModal = ({ onClose, onGroupCreated }) => {
     });
   };
 
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Image must be less than 5MB');
+        return;
+      }
+      setGroupImage(file);
+      setImagePreview(URL.createObjectURL(file));
+    }
+  };
+
   const handleCreate = async () => {
     if (!groupName.trim()) {
       toast.error('Group name is required');
@@ -74,11 +88,21 @@ const CreateGroupModal = ({ onClose, onGroupCreated }) => {
 
     setCreating(true);
     try {
-      const { data } = await chatAPI.createGroup({
-        name: groupName,
-        participants: selectedUsers.map((u) => u._id),
-        description,
-      });
+      const formData = new FormData();
+      formData.append('name', groupName);
+      formData.append('description', description);
+      selectedUsers.forEach((u) => formData.append('participants', u._id));
+      // Field name matches groupAvatarUpload.single('groupAvatar') on server.
+      if (groupImage) {
+        formData.append('groupAvatar', groupImage);
+      }
+      const { data } = groupImage
+        ? await chatAPI.createGroupWithImage(formData)
+        : await chatAPI.createGroup({
+            name: groupName,
+            participants: selectedUsers.map((u) => u._id),
+            description,
+          });
       toast.success('Group created!');
       if (onGroupCreated) onGroupCreated(data.chat);
       onClose();
@@ -237,6 +261,27 @@ const CreateGroupModal = ({ onClose, onGroupCreated }) => {
           <>
             {/* Group details */}
             <div className="flex-1 p-4 space-y-4 overflow-y-auto">
+              {/* Group image */}
+              <div className="flex flex-col items-center">
+                <div className="relative">
+                  {imagePreview ? (
+                    <img src={imagePreview} alt="Group" className="w-20 h-20 rounded-full object-cover" />
+                  ) : (
+                    <div
+                      className="w-20 h-20 rounded-full flex items-center justify-center text-white text-xl font-bold"
+                      style={{ backgroundColor: stringToColor(groupName || 'Group') }}
+                    >
+                      {getInitials(groupName || 'Group')}
+                    </div>
+                  )}
+                  <label className="absolute bottom-0 right-0 p-1.5 bg-primary-500 rounded-full text-white cursor-pointer hover:bg-primary-600 transition-colors shadow-lg">
+                    <FiCamera className="w-3.5 h-3.5" />
+                    <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+                  </label>
+                </div>
+                <p className="text-[11px] text-gray-400 mt-1.5">Group image (optional)</p>
+              </div>
+
               {/* Group name */}
               <div>
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">

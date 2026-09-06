@@ -11,6 +11,7 @@ import ForwardModal from './ForwardModal';
 import VanishModeToggle from './VanishModeToggle';
 import MessageSearch from './MessageSearch';
 import GroupInfoPanel from './GroupInfoPanel';
+import NotificationSettingsModal from './NotificationSettingsModal';
 import { getOtherParticipant, getInitials, stringToColor, formatLastSeen } from '../../utils/helpers';
 import toast from 'react-hot-toast';
 import {
@@ -29,6 +30,8 @@ import {
   FiLock,
   FiUnlock,
   FiBellOff,
+  FiBell,
+  FiAtSign,
   FiTrash,
   FiMail,
   FiCheckCircle,
@@ -459,6 +462,7 @@ const ChatWindow = () => {
   const [highlightedMessageId, setHighlightedMessageId] = useState(null);
   const [showLockModal, setShowLockModal] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [showNotificationSettings, setShowNotificationSettings] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
 
   // Detect whether the device supports biometric (platform authenticator) unlock.
@@ -491,6 +495,18 @@ const ChatWindow = () => {
   const isMutedChat = (activeChat?.mutedBy || []).some(
     (id) => id.toString() === user?._id?.toString()
   );
+  // Custom notification state for THIS chat (from the per-user settings the
+  // backend serializes just for the requesting user).
+  const myNotificationSetting = (activeChat?.notificationSettings || []).find(
+    (s) => s.user === user?._id || s.user?._id === user?._id
+  );
+  const isTimedMuteExpired =
+    isMutedChat &&
+    myNotificationSetting?.muteUntil &&
+    new Date(myNotificationSetting.muteUntil).getTime() <= Date.now();
+  const notificationMode = isTimedMuteExpired
+    ? 'all'
+    : myNotificationSetting?.mode || (isMutedChat ? 'muted' : 'all');
   const chatName = activeChat?.isGroup
     ? activeChat.groupName || 'Group'
     : otherUser?.name || 'Chat';
@@ -828,6 +844,14 @@ const ChatWindow = () => {
   }
 
   const vanishLabel = getVanishLabel(activeChat.vanishMode);
+  // Group helpers for the header (avatar, member count, admin badge).
+  const isGroupChat = !!activeChat.isGroup;
+  const memberCount = isGroupChat ? (activeChat.participants || []).length : 0;
+  const amGroupAdmin =
+    isGroupChat &&
+    (activeChat.groupAdmin || []).some(
+      (a) => (typeof a === 'string' ? a : a._id) === user?._id
+    );
 
   return (
     <div className="flex-1 flex flex-col bg-white/50 dark:bg-dark-900/50 backdrop-blur-xl min-h-0 h-full overflow-hidden">
@@ -851,7 +875,13 @@ const ChatWindow = () => {
             </button>
 
             {/* User Avatar */}
-            {otherUser?.avatar ? (
+            {isGroupChat && activeChat.groupAvatar ? (
+              <img
+                src={activeChat.groupAvatar}
+                alt={chatName}
+                className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+              />
+            ) : otherUser?.avatar && !isGroupChat ? (
               <img
                 src={otherUser.avatar}
                 alt={otherUser.name}
@@ -860,9 +890,9 @@ const ChatWindow = () => {
             ) : (
               <div
                 className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
-                style={{ backgroundColor: stringToColor(otherUser?.name) }}
+                style={{ backgroundColor: stringToColor(chatName) }}
               >
-                {getInitials(otherUser?.name)}
+                {getInitials(chatName)}
               </div>
             )}
 
@@ -870,13 +900,33 @@ const ChatWindow = () => {
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
                 <h2 className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                  {otherUser?.name || 'Unknown'}
+                  {chatName}
                 </h2>
+                {amGroupAdmin && (
+                  <span
+                    className="hidden sm:inline-flex items-center px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded text-[10px] font-semibold uppercase flex-shrink-0"
+                    title="You are a group admin"
+                  >
+                    Admin
+                  </span>
+                )}
                 {isLockedChat && <FiLock className="w-3.5 h-3.5 text-secondary-500 flex-shrink-0" title="Locked conversation" />}
+                {notificationMode === 'mentions' && (
+                  <button onClick={() => setShowNotificationSettings(true)} title="Notifications: Mentions only">
+                    <FiAtSign className="w-3.5 h-3.5 text-primary-500 flex-shrink-0" />
+                  </button>
+                )}
+                {notificationMode === 'muted' && (
+                  <button onClick={() => setShowNotificationSettings(true)} title="Notifications muted">
+                    <FiBellOff className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+                  </button>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {isOnline ? (
+                  {isGroupChat ? (
+                    `${memberCount} members`
+                  ) : isOnline ? (
                     <span className="text-green-500 font-medium">Online</span>
                   ) : (
                     `Last seen ${formatLastSeen(otherUser?.lastSeen)}`
@@ -944,6 +994,22 @@ const ChatWindow = () => {
                     </button>
                     <button onClick={toggleMuteChat} className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-primary-500/10 dark:hover:bg-white/5 flex items-center gap-3">
                       <FiBellOff className="w-4 h-4" /> {isMutedChat ? 'Unmute Notifications' : 'Mute Notifications'}
+                    </button>
+                    <button
+                      onClick={() => { setShowOptions(false); setShowNotificationSettings(true); }}
+                      className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-primary-500/10 dark:hover:bg-white/5 flex items-center gap-3"
+                    >
+                      {notificationMode === 'mentions' ? (
+                        <FiAtSign className="w-4 h-4 text-primary-500" />
+                      ) : notificationMode === 'muted' ? (
+                        <FiBellOff className="w-4 h-4 text-amber-500" />
+                      ) : (
+                        <FiBell className="w-4 h-4" />
+                      )}
+                      <span className="flex-1">Notification Settings</span>
+                      <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">
+                        {notificationMode === 'all' ? 'All' : notificationMode === 'mentions' ? '@' : 'Off'}
+                      </span>
                     </button>
                     <button onClick={handlePinChat} className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-primary-500/10 dark:hover:bg-white/5 flex items-center gap-3">
                       <FiStar className="w-4 h-4" /> Pin Chat
@@ -1096,6 +1162,14 @@ const ChatWindow = () => {
           chatName={chatName}
           onConfirm={confirmClearChat}
           onCancel={() => setShowClearConfirm(false)}
+        />
+      )}
+
+      {/* Custom notification settings (per conversation, per user) */}
+      {showNotificationSettings && activeChat && (
+        <NotificationSettingsModal
+          chat={activeChat}
+          onClose={() => setShowNotificationSettings(false)}
         />
       )}
 
